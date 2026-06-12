@@ -25,10 +25,10 @@ export const Dashboard: React.FC = () => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-
-     if (matchesData) {
+if (matchesData) {
   const filtered = (matchesData as Partido[]).filter((m) => {
     const esGrupo = m.grupo?.startsWith("Grupo");
+
     const noFinalizado = m.estado !== "Finalizado";
 
     const noCruceAutomatico =
@@ -37,12 +37,17 @@ export const Dashboard: React.FC = () => {
       !m.equipo_visitante?.includes("Ganador") &&
       !m.equipo_visitante?.includes("Perdedor");
 
-    return esGrupo && noFinalizado && noCruceAutomatico;
+    const tieneEquiposReales =
+      m.equipo_local &&
+      m.equipo_visitante &&
+      m.equipo_local.trim() !== "" &&
+      m.equipo_visitante.trim() !== "";
+
+    return esGrupo && noFinalizado && noCruceAutomatico && tieneEquiposReales;
   });
 
   setUpcomingMatches(filtered);
 }
-
         // 2. Obtener datos de la vista de ranking
         const { data: rankingData } = await supabase
           .from('ranking')
