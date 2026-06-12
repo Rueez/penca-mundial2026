@@ -36,8 +36,15 @@ export const Dashboard: React.FC = () => {
           .limit(4);
 
         if (matchesData) {
-          setUpcomingMatches(matchesData as Partido[]);
-        }
+  const filtered = (matchesData as Partido[]).filter((m) =>
+    m.estado !== "Finalizado" &&
+    m.grupo?.startsWith("Grupo") &&
+    !m.equipo_local?.startsWith("Ganador") &&
+    !m.equipo_visitante?.startsWith("Perdedor")
+  );
+
+  setUpcomingMatches(filtered);
+}
 
         // 2. Obtener datos de la vista de ranking
         const { data: rankingData } = await supabase
