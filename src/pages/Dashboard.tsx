@@ -26,22 +26,19 @@ export const Dashboard: React.FC = () => {
       try {
         setLoading(true);
 
-        // 1. Obtener los próximos 4 partidos pendientes o en juego
-        const { data: matchesData } = await supabase
-          .from('partidos')
-          .select('*')
-          .or('estado.eq.Pendiente,estado.eq.En juego')
-          .order('fecha', { ascending: true })
-          .order('hora', { ascending: true })
-          .limit(4);
+     if (matchesData) {
+  const filtered = (matchesData as Partido[]).filter((m) => {
+    const esGrupo = m.grupo?.startsWith("Grupo");
+    const noFinalizado = m.estado !== "Finalizado";
 
-        if (matchesData) {
-  const filtered = (matchesData as Partido[]).filter((m) =>
-    m.estado !== "Finalizado" &&
-    m.grupo?.startsWith("Grupo") &&
-    !m.equipo_local?.startsWith("Ganador") &&
-    !m.equipo_visitante?.startsWith("Perdedor")
-  );
+    const noCruceAutomatico =
+      !m.equipo_local?.includes("Ganador") &&
+      !m.equipo_local?.includes("Perdedor") &&
+      !m.equipo_visitante?.includes("Ganador") &&
+      !m.equipo_visitante?.includes("Perdedor");
+
+    return esGrupo && noFinalizado && noCruceAutomatico;
+  });
 
   setUpcomingMatches(filtered);
 }
