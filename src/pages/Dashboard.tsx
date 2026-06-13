@@ -52,34 +52,27 @@ useEffect(() => {
       }
 
       if (matchesData) {
-        const filtered = (matchesData as Partido[]).filter((m) => {
-          const esGrupo =
-            m.grupo === "Grupo A" ||
-            m.grupo === "Grupo B" ||
-            m.grupo === "Grupo C" ||
-            m.grupo === "Grupo D" ||
-            m.grupo === "Grupo E" ||
-            m.grupo === "Grupo F" ||
-            m.grupo === "Grupo G" ||
-            m.grupo === "Grupo H" ||
-            m.grupo === "Grupo I" ||
-            m.grupo === "Grupo J" ||
-            m.grupo === "Grupo K" ||
-            m.grupo === "Grupo L";
+  const filtered = (matchesData as Partido[]).filter((m) => {
+    const esPlaceholder =
+      m.equipo_local?.includes("Ganador") ||
+      m.equipo_local?.includes("Perdedor") ||
+      m.equipo_visitante?.includes("Ganador") ||
+      m.equipo_visitante?.includes("Perdedor");
 
-          const noFinalizado = m.estado !== "Finalizado";
+    const tieneEquiposReales =
+      m.equipo_local &&
+      m.equipo_visitante &&
+      !esPlaceholder;
 
-          const noCruces =
-            !m.equipo_local?.includes("Ganador") &&
-            !m.equipo_local?.includes("Perdedor") &&
-            !m.equipo_visitante?.includes("Ganador") &&
-            !m.equipo_visitante?.includes("Perdedor");
+    const esGrupo = m.grupo?.startsWith("Grupo");
 
-          return esGrupo && noFinalizado && noCruces;
-        });
+    const noFinalizado = m.estado !== "Finalizado";
 
-        setUpcomingMatches(filtered);
-      }
+    return esGrupo && noFinalizado && tieneEquiposReales;
+  });
+
+  setUpcomingMatches(filtered);
+}
 
     } catch (error) {
       console.error("Dashboard error:", error);
