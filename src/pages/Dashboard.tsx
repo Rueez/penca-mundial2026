@@ -122,10 +122,9 @@ export const Dashboard: React.FC = () => {
   </h3>
   <p className="text-sm text-slate-400">
     11 participantes × $300
+    <br />
+    El premio acumulado se repartirá entre el 1° y 2° lugar
   </p>
-  <p className="text-slate-400 text-sm md:text-base leading-relaxed mb-6">
-            El premio acumulado se repartirá entre el 1° y 2° lugar.
-          </p>
 </div>
           <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-4">
             {!isClosed ? (
