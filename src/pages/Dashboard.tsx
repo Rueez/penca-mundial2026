@@ -116,7 +116,17 @@ export const Dashboard: React.FC = () => {
           <p className="text-slate-400 text-sm md:text-base leading-relaxed mb-6">
             Una penca para los muchachos del laburo. 
           </p>
-          
+          <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-6 text-center">
+  <h3 className="text-lg font-bold text-green-400">
+    🏆 Premio acumulado: $3.300
+  </h3>
+  <p className="text-sm text-slate-400">
+    11 participantes × $300
+  </p>
+  <p className="text-slate-400 text-sm md:text-base leading-relaxed mb-6">
+            El premio acumulado se repartirá entre el 1° y 2° lugar.
+          </p>
+</div>
           <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-4">
             {!isClosed ? (
               <Link
