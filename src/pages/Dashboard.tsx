@@ -51,24 +51,27 @@ useEffect(() => {
         return;
       }
 
-      if (matchesData) {
+ if (matchesData) {
   const filtered = (matchesData as Partido[]).filter((m) => {
     const esPlaceholder =
-      m.equipo_local?.includes("Ganador") ||
-      m.equipo_local?.includes("Perdedor") ||
-      m.equipo_visitante?.includes("Ganador") ||
-      m.equipo_visitante?.includes("Perdedor");
-
-    const tieneEquiposReales =
-      m.equipo_local &&
-      m.equipo_visitante &&
-      !esPlaceholder;
+      !m.equipo_local ||
+      !m.equipo_visitante ||
+      m.equipo_local.includes("Ganador") ||
+      m.equipo_visitante.includes("Perdedor") ||
+      m.equipo_local.includes("Perdedor") ||
+      m.equipo_visitante.includes("Ganador");
 
     const esGrupo = m.grupo?.startsWith("Grupo");
 
     const noFinalizado = m.estado !== "Finalizado";
 
-    return esGrupo && noFinalizado && tieneEquiposReales;
+    const tieneEquiposValidos =
+      m.equipo_local &&
+      m.equipo_visitante &&
+      m.equipo_local !== "" &&
+      m.equipo_visitante !== "";
+
+    return esGrupo && noFinalizado && tieneEquiposValidos && !esPlaceholder;
   });
 
   setUpcomingMatches(filtered);
