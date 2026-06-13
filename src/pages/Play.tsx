@@ -171,7 +171,7 @@ export const Play: React.FC = () => {
             nombre: name.trim(),
             campeon: champion,
             subcampeon: subchampion,
-            bloqueado: true
+            bloqueado: false
           }
         ])
         .select()
