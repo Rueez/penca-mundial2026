@@ -21,72 +21,62 @@ export const Dashboard: React.FC = () => {
 
   const isClosed = isRegistrationClosed();
 
+  export const Dashboard: React.FC = () => {
+  const [loading, setLoading] = useState(true);
+  const [upcomingMatches, setUpcomingMatches] = useState<Partido[]>([]);
+  const [stats, setStats] = useState({
+    leaderName: '',
+    totalParticipants: 0,
+    finishedMatches: 0,
+    totalMatches: 104,
+    leaderExacts: 0,
+    averagePoints: 0
+  });
+
+  const isClosed = isRegistrationClosed();
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-if (matchesData) {
-  const filtered = (matchesData as Partido[]).filter((m) => {
-    const esGrupo = m.grupo?.startsWith("Grupo");
 
-    const noFinalizado = m.estado !== "Finalizado";
-
-    const noCruceAutomatico =
-      !m.equipo_local?.includes("Ganador") &&
-      !m.equipo_local?.includes("Perdedor") &&
-      !m.equipo_visitante?.includes("Ganador") &&
-      !m.equipo_visitante?.includes("Perdedor");
-
-    const tieneEquiposReales =
-      m.equipo_local &&
-      m.equipo_visitante &&
-      m.equipo_local.trim() !== "" &&
-      m.equipo_visitante.trim() !== "";
-
-    return esGrupo && noFinalizado && noCruceAutomatico && tieneEquiposReales;
-  });
-
-  setUpcomingMatches(filtered);
-}
-        // 2. Obtener datos de la vista de ranking
-        const { data: rankingData } = await supabase
-          .from('ranking')
+        const { data: matchesData, error } = await supabase
+          .from('partidos')
           .select('*');
 
-          
-
-        // 3. Obtener cantidad de partidos jugados
-        const { count: finishedCount } = await supabase
-          .from('partidos')
-          .select('*', { count: 'exact', head: true })
-          .eq('estado', 'Finalizado');
-
-        const totalParticipants = rankingData ? rankingData.length : 0;
-        const finishedMatches = finishedCount || 0;
-
-        let leaderName = '';
-        let leaderExacts = 0;
-        let averagePoints = 0;
-
-        if (rankingData && rankingData.length > 0) {
-          const leader = rankingData[0] as RankingRow;
-          leaderName = leader.nombre;
-          leaderExacts = leader.exactos_acertados;
-          
-          const totalPointsSum = rankingData.reduce((sum, row) => sum + row.puntos_totales, 0);
-          averagePoints = totalPointsSum / totalParticipants;
+        if (error) {
+          console.error("Supabase error:", error);
+          return;
         }
 
-        setStats({
-          leaderName,
-          totalParticipants,
-          finishedMatches,
-          totalMatches: 104,
-          leaderExacts,
-          averagePoints
-        });
-      } catch (err) {
-        console.error('Error al cargar datos del panel:', err);
+        console.log("MATCHES RAW:", matchesData);
+
+        if (matchesData) {
+          const filtered = (matchesData as Partido[]).filter((m) => {
+            const esGrupo = m.grupo?.startsWith("Grupo");
+
+            const noFinalizado = m.estado !== "Finalizado";
+
+            const noCruceAutomatico =
+              !m.equipo_local?.includes("Ganador") &&
+              !m.equipo_local?.includes("Perdedor") &&
+              !m.equipo_visitante?.includes("Ganador") &&
+              !m.equipo_visitante?.includes("Perdedor");
+
+            const tieneEquiposReales =
+              m.equipo_local &&
+              m.equipo_visitante &&
+              m.equipo_local.trim() !== "" &&
+              m.equipo_visitante.trim() !== "";
+
+            return esGrupo && noFinalizado && noCruceAutomatico && tieneEquiposReales;
+          });
+
+          setUpcomingMatches(filtered);
+        }
+
+      } catch (error) {
+        console.error("Dashboard error:", error);
       } finally {
         setLoading(false);
       }
@@ -94,6 +84,13 @@ if (matchesData) {
 
     fetchDashboardData();
   }, []);
+
+  return (
+    <div>
+      {/* tu JSX sigue igual abajo */}
+    </div>
+  );
+};
 
   if (loading) {
     return (
