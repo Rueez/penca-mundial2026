@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../services/supabase';
-import type { Partido, RankingRow } from '../types/database.types';
+import type { Partido } from '../types/database.types';
 import { StatsDashboard } from '../components/StatsDashboard';
 import { MatchCard } from '../components/MatchCard';
 import { isRegistrationClosed } from '../utils/timezone';
@@ -11,7 +11,7 @@ import { Trophy, ArrowRight, Play, AlertCircle } from 'lucide-react';
   export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [upcomingMatches, setUpcomingMatches] = useState<Partido[]>([]);
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     leaderName: '',
     totalParticipants: 0,
     finishedMatches: 0,
