@@ -39,6 +39,7 @@ export const Dashboard: React.FC = () => {
 
         const matchesData = matchesResponse.data as Partido[] || [];
         const rankingData = rankingResponse.data || [];
+        console.log("DATOS DEL RANKING EN EL DASHBOARD:", rankingData);
 
         // 3. Filtrar partidos próximos para las tarjetas de abajo
         const filtered = matchesData.filter((m) => {
