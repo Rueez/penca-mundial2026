@@ -31,19 +31,18 @@ export const Play: React.FC = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   
   const isClosed = isRegistrationClosed();
-
-  // Cargar partidos y equipos
+// Cargar partidos y equipos
   useEffect(() => {
     if (isClosed) return;
 
     const loadData = async () => {
       try {
         setLoading(true);
-        // 1. Cargar todos los partidos
+        // 1. Cargar todos los partidos ordenados por FECHA
         const { data: matchesData, error: matchesError } = await supabase
           .from('partidos')
           .select('*')
-          .order('id', { ascending: true });
+          .order('fecha', { ascending: true }); // 🛡️ CORREGIDO: De id a fecha
 
         if (matchesError) throw matchesError;
 
@@ -60,7 +59,8 @@ export const Play: React.FC = () => {
           // 2. Extraer los equipos de fase de grupos
           const groupTeams = new Set<string>();
           matchesData.forEach(m => {
-            if (m.grupo.startsWith('Grupo')) {
+            // Se agrega el "m.grupo &&" por seguridad
+            if (m.grupo && m.grupo.startsWith('Grupo')) {
               groupTeams.add(m.equipo_local);
               groupTeams.add(m.equipo_visitante);
             }
