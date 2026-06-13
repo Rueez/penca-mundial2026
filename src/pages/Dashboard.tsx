@@ -7,12 +7,13 @@ import { MatchCard } from '../components/MatchCard';
 import { isRegistrationClosed } from '../utils/timezone';
 import { Trophy, ArrowRight, Play, AlertCircle } from 'lucide-react';
 
-
-  export const Dashboard: React.FC = () => {
+export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [upcomingMatches, setUpcomingMatches] = useState<Partido[]>([]);
-  const [stats] = useState({
-    leaderName: '',
+  
+  // 1. Estado inicial con setStats disponible para las actualizaciones
+  const [stats, setStats] = useState({
+    leaderName: 'Nadie aún',
     totalParticipants: 0,
     finishedMatches: 0,
     totalMatches: 104,
@@ -22,51 +23,73 @@ import { Trophy, ArrowRight, Play, AlertCircle } from 'lucide-react';
 
   const isClosed = isRegistrationClosed();
 
-useEffect(() => {
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
 
-      const { data: matchesData, error } = await supabase
-        .from('partidos')
-        .select('*');
+        // 2. Traemos en paralelo partidos y ranking (una sola llamada limpia)
+        const [matchesResponse, rankingResponse] = await Promise.all([
+          supabase.from('partidos').select('*'),
+          supabase.from('ranking').select('*')
+        ]);
 
-      console.log("MATCHES RAW:", matchesData);
+        if (matchesResponse.error) throw matchesResponse.error;
+        if (rankingResponse.error) throw rankingResponse.error;
 
-      if (error) {
-        console.error("Supabase error:", error);
-        return;
+        const matchesData = matchesResponse.data as Partido[] || [];
+        const rankingData = rankingResponse.data || [];
+
+        // 3. Filtrar partidos próximos para las tarjetas de abajo
+        const filtered = matchesData.filter((m) => {
+          const esGrupo = m.grupo?.startsWith("Grupo");
+          const noFinalizado = m.estado !== "Finalizado";
+          const noPlaceholder =
+            !m.equipo_local?.includes("Ganador") &&
+            !m.equipo_local?.includes("Perdedor") &&
+            !m.equipo_visitante?.includes("Ganador") &&
+            !m.equipo_visitante?.includes("Perdedor");
+
+          return esGrupo && noFinalizado && noPlaceholder;
+        });
+        setUpcomingMatches(filtered);
+
+        // 4. Procesar y calcular estadísticas reales en tiempo de ejecución
+        const partidosFinalizados = matchesData.filter(m => m.estado === 'Finalizado').length;
+        const totalAmigos = rankingData.length;
+        
+        let lider = 'Nadie aún';
+        let exactosDelLider = 0;
+        let promedioPuntos = 0;
+
+        if (totalAmigos > 0) {
+          const topUser = rankingData[0];
+          lider = topUser.nombre;
+          exactosDelLider = topUser.exactos_acertados || 0;
+          
+          const sumaPuntos = rankingData.reduce((acc, curr) => acc + (curr.puntos_totales || 0), 0);
+          promedioPuntos = parseFloat((sumaPuntos / totalAmigos).toFixed(1));
+        }
+
+        // 5. Impactamos los contadores en el estado
+        setStats({
+          leaderName: lider,
+          totalParticipants: totalAmigos,
+          finishedMatches: partidosFinalizados,
+          totalMatches: matchesData.length || 104,
+          leaderExacts: exactosDelLider,
+          averagePoints: promedioPuntos
+        });
+
+      } catch (error) {
+        console.error("Dashboard error:", error);
+      } finally {
+        setLoading(false);
       }
+    };
 
- if (matchesData) {
-  const filtered = (matchesData as Partido[]).filter((m) => {
-    const esGrupo = m.grupo?.startsWith("Grupo");
-
-    const noFinalizado = m.estado !== "Finalizado";
-
-    const noPlaceholder =
-      !m.equipo_local?.includes("Ganador") &&
-      !m.equipo_local?.includes("Perdedor") &&
-      !m.equipo_visitante?.includes("Ganador") &&
-      !m.equipo_visitante?.includes("Perdedor");
-
-    return esGrupo && noFinalizado && noPlaceholder;
-  });
-
-  setUpcomingMatches(filtered);
-}
-
-    } catch (error) {
-      console.error("Dashboard error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchDashboardData();
-}, []);
-
-
+    fetchDashboardData();
+  }, []); // 👈 UN SOLO EFFECT. El bloque repetido que tenías abajo ya fue eliminado.
 
   if (loading) {
     return (
@@ -90,16 +113,9 @@ useEffect(() => {
             Penca Mundial <span className="text-amber-400">2026</span>
           </h1>
           <p className="text-slate-400 text-sm md:text-base leading-relaxed mb-6">
-Una penca para los muchachos del laburo. 
+            Una penca para los muchachos del laburo. 
           </p>
-          <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-6 text-center">
-  <h3 className="text-lg font-bold text-green-400">
-    🏆 Premio acumulado: $3.300
-  </h3>
-  <p className="text-sm text-slate-400">
-    11 participantes × $300
-  </p>
-</div>
+          
           <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-4">
             {!isClosed ? (
               <Link
@@ -123,7 +139,7 @@ Una penca para los muchachos del laburo.
           </div>
         </div>
         
-        {/* Gráfico / Ilustración visual premium */}
+        {/* Gráfico / Ilustración */}
         <div className="w-48 h-48 md:w-64 md:h-64 flex items-center justify-center bg-radial from-amber-500/20 to-transparent rounded-full z-10 shrink-0 relative animate-pulse-gold">
           <Trophy className="h-24 w-24 md:h-32 md:w-32 text-amber-400 drop-shadow-[0_0_20px_rgba(245,158,11,0.5)]" />
         </div>
@@ -148,7 +164,7 @@ Una penca para los muchachos del laburo.
           <h2 className="text-xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
             <span className="w-1.5 h-6 bg-indigo-500 rounded-full" /> Próximos Partidos
           </h2>
-         {stats.finishedMatches > 0 && (
+          {stats.finishedMatches > 0 && (
             <span className="text-xs font-semibold px-2.5 py-1 bg-slate-900 border border-slate-800 rounded-lg text-slate-400">
               El torneo ya está en marcha
             </span>

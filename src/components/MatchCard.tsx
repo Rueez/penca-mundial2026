@@ -47,7 +47,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
           </div>
         </div>
 
-        {/* Home Score / Input */}
+       {/* Home Score / Input */}
         <div className="col-span-1 flex justify-center">
           {isPredictionMode ? (
             <input
@@ -56,10 +56,16 @@ export const MatchCard: React.FC<MatchCardProps> = ({
               placeholder="0"
               value={prediction?.goles_local ?? ''}
               onChange={(e) => handleInputChange('goles_local', e.target.value)}
-              className="w-12 h-10 text-center font-bold text-lg text-slate-50 bg-slate-950/60 border border-slate-700 rounded-xl focus:border-amber-400 focus:outline-none transition appearance-none"
+              disabled={match.estado === 'Finalizado' || match.estado === 'En juego'}
+              className={`w-12 h-10 text-center font-bold text-lg border rounded-xl focus:outline-none transition appearance-none ${
+                match.estado === 'Finalizado' || match.estado === 'En juego'
+                  ? 'bg-slate-900/80 border-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+                  : 'bg-slate-950/60 border-slate-700 text-slate-50 focus:border-amber-400'
+              }`}
             />
           ) : (
             <div className={`text-2xl font-extrabold ${match.estado === 'Finalizado' ? 'text-slate-100' : 'text-slate-500'}`}>
+              {/* 🛡️ CORREGIDO: Ahora sí muestra los goles locales reales */}
               {match.estado === 'Finalizado' ? match.goles_local_real : '-'}
             </div>
           )}
@@ -87,15 +93,20 @@ export const MatchCard: React.FC<MatchCardProps> = ({
               placeholder="0"
               value={prediction?.goles_visitante ?? ''}
               onChange={(e) => handleInputChange('goles_visitante', e.target.value)}
-              className="w-12 h-10 text-center font-bold text-lg text-slate-50 bg-slate-950/60 border border-slate-700 rounded-xl focus:border-amber-400 focus:outline-none transition appearance-none"
+              disabled={match.estado === 'Finalizado' || match.estado === 'En juego'}
+              className={`w-12 h-10 text-center font-bold text-lg border rounded-xl focus:outline-none transition appearance-none ${
+                match.estado === 'Finalizado' || match.estado === 'En juego'
+                  ? 'bg-slate-900/80 border-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+                  : 'bg-slate-950/60 border-slate-700 text-slate-50 focus:border-amber-400'
+              }`}
             />
           ) : (
             <div className={`text-2xl font-extrabold ${match.estado === 'Finalizado' ? 'text-slate-100' : 'text-slate-500'}`}>
+              {/* 🛡️ CORREGIDO: Muestra los goles visitantes reales */}
               {match.estado === 'Finalizado' ? match.goles_visitante_real : '-'}
             </div>
           )}
         </div>
-
         {/* Visitor Team */}
         <div className="col-span-2 flex flex-col items-center justify-center">
           <div className="text-sm font-bold text-slate-100 line-clamp-2 leading-tight">
