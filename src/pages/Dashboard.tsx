@@ -7,19 +7,6 @@ import { MatchCard } from '../components/MatchCard';
 import { isRegistrationClosed } from '../utils/timezone';
 import { Trophy, ArrowRight, Play, AlertCircle } from 'lucide-react';
 
-export const Dashboard: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [upcomingMatches, setUpcomingMatches] = useState<Partido[]>([]);
-  const [stats, setStats] = useState({
-    leaderName: '',
-    totalParticipants: 0,
-    finishedMatches: 0,
-    totalMatches: 104,
-    leaderExacts: 0,
-    averagePoints: 0
-  });
-
-  const isClosed = isRegistrationClosed();
 
   export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -79,12 +66,7 @@ useEffect(() => {
   fetchDashboardData();
 }, []);
 
-  return (
-    <div>
-      {/* tu JSX sigue igual abajo */}
-    </div>
-  );
-};
+
 
   if (loading) {
     return (
