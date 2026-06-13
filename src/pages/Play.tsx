@@ -177,8 +177,11 @@ export const Play: React.FC = () => {
         .select()
         .single();
 
-      if (participantError) throw participantError;
-
+if (participantError) {
+  console.error("PARTICIPANT ERROR:", participantError);
+  alert(JSON.stringify(participantError));
+  throw participantError;
+}
       // 2. Preparar el array de predicciones
       const pronosticosData = matches.map(m => ({
         participante_id: newParticipant.id,
