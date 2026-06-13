@@ -251,7 +251,7 @@ export const Play: React.FC = () => {
           
           <h2 className="text-2xl font-black text-center text-slate-100 mb-2 z-10 relative">Tu Participación</h2>
           <p className="text-slate-400 text-center text-xs leading-relaxed mb-8 z-10 relative">
-            Ingresa tu nombre para comenzar a rellenar tus pronósticos. No requiere correos ni contraseñas.
+            Ingresa tu nombre para comenzar a rellenar tus pronósticos. DESPUES DE COMPLETAR Y ENVIAR LA PENCA NO SE PUEDE MODIFICAR
           </p>
 
           <form onSubmit={handleNameSubmit} className="space-y-6 z-10 relative">

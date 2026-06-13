@@ -108,7 +108,7 @@ useEffect(() => {
             Penca Mundial <span className="text-amber-400">2026</span>
           </h1>
           <p className="text-slate-400 text-sm md:text-base leading-relaxed mb-6">
-            ¡Compite con tus amigos prediciendo los marcadores de la Copa Mundial 2026! Suma puntos por resultados exactos y por acertar ganadores o empates.
+Una penca para los muchachos del laburo. 
           </p>
           
           <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-4">
