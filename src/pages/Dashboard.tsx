@@ -35,55 +35,61 @@ export const Dashboard: React.FC = () => {
 
   const isClosed = isRegistrationClosed();
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
+useEffect(() => {
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
 
-        const { data: matchesData, error } = await supabase
-          .from('partidos')
-          .select('*');
+      const { data: matchesData, error } = await supabase
+        .from('partidos')
+        .select('*');
 
-        if (error) {
-          console.error("Supabase error:", error);
-          return;
-        }
+      console.log("MATCHES RAW:", matchesData);
 
-        console.log("MATCHES RAW:", matchesData);
-
-        if (matchesData) {
-          const filtered = (matchesData as Partido[]).filter((m) => {
-            const esGrupo = m.grupo?.startsWith("Grupo");
-
-            const noFinalizado = m.estado !== "Finalizado";
-
-            const noCruceAutomatico =
-              !m.equipo_local?.includes("Ganador") &&
-              !m.equipo_local?.includes("Perdedor") &&
-              !m.equipo_visitante?.includes("Ganador") &&
-              !m.equipo_visitante?.includes("Perdedor");
-
-            const tieneEquiposReales =
-              m.equipo_local &&
-              m.equipo_visitante &&
-              m.equipo_local.trim() !== "" &&
-              m.equipo_visitante.trim() !== "";
-
-            return esGrupo && noFinalizado && noCruceAutomatico && tieneEquiposReales;
-          });
-
-          setUpcomingMatches(filtered);
-        }
-
-      } catch (error) {
-        console.error("Dashboard error:", error);
-      } finally {
-        setLoading(false);
+      if (error) {
+        console.error("Supabase error:", error);
+        return;
       }
-    };
 
-    fetchDashboardData();
-  }, []);
+      if (matchesData) {
+        const filtered = (matchesData as Partido[]).filter((m) => {
+          const esGrupo =
+            m.grupo === "Grupo A" ||
+            m.grupo === "Grupo B" ||
+            m.grupo === "Grupo C" ||
+            m.grupo === "Grupo D" ||
+            m.grupo === "Grupo E" ||
+            m.grupo === "Grupo F" ||
+            m.grupo === "Grupo G" ||
+            m.grupo === "Grupo H" ||
+            m.grupo === "Grupo I" ||
+            m.grupo === "Grupo J" ||
+            m.grupo === "Grupo K" ||
+            m.grupo === "Grupo L";
+
+          const noFinalizado = m.estado !== "Finalizado";
+
+          const noCruces =
+            !m.equipo_local?.includes("Ganador") &&
+            !m.equipo_local?.includes("Perdedor") &&
+            !m.equipo_visitante?.includes("Ganador") &&
+            !m.equipo_visitante?.includes("Perdedor");
+
+          return esGrupo && noFinalizado && noCruces;
+        });
+
+        setUpcomingMatches(filtered);
+      }
+
+    } catch (error) {
+      console.error("Dashboard error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchDashboardData();
+}, []);
 
   return (
     <div>
