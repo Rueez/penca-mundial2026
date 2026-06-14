@@ -332,38 +332,21 @@ if (participantError) {
      {/* Lista de Partidos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {filteredMatches.map((match) => {
-            // 1. Obtenemos la hora actual de Uruguay (Ej: 16, 20) y los minutos
-            const ahora = new Date();
-            const horaActual = ahora.getHours();
-            const minutosActuales = ahora.getMinutes();
+            // 🚨 BOTÓN DE PÁNICO: Si es el partido 9 o 11, lo FORZAMOS a estar abierto pase lo que pase
+            let habilitadoParaJugar = false;
 
-            // 2. Extraemos la hora del partido directamente del texto de Supabase
-            // Si "match.fecha" es "2026-06-14 17:00:00", esto saca un 17 y un 0
-            const textoFecha = match.fecha || "";
-            const partesTiempo = textoFecha.includes(" ") ? textoFecha.split(" ")[1] : textoFecha.split("T")[1];
-            
-            let horaPartido = 0;
-            let minutosPartido = 0;
-            
-            if (partesTiempo) {
-              horaPartido = parseInt(partesTiempo.split(":")[0], 10);
-              minutosPartido = parseInt(partesTiempo.split(":")[1], 10);
+            if (match.id === 9 || match.id === 11) {
+              habilitadoParaJugar = true;
+            } else {
+              // Para los partidos de los demás días, usamos la lógica estándar de Supabase
+              habilitadoParaJugar = match.estado !== 'Finalizado' && new Date() < new Date(match.fecha);
             }
-
-            // 3. Calculamos el tiempo total en minutos desde que arrancó el día
-            const tiempoActualEnMinutos = (horaActual * 60) + minutosActuales;
-            const tiempoPartidoEnMinutos = (horaPartido * 60) + minutosPartido;
-
-            // 4. Bloqueamos el partido si ya se pasó de la hora o si ya está finalizado
-            // 🚨 NOTA: Si en Supabase pusiste la hora UTC (+3 horas), cambias la línea de abajo por:
-            // const yaEmpezo = tiempoActualEnMinutos >= (tiempoPartidoEnMinutos - 180);
-            const yaEmpezo = tiempoActualEnMinutos >= tiempoPartidoEnMinutos;
-            const habilitadoParaJugar = !yaEmpezo && match.estado !== 'Finalizado';
 
             return (
               <MatchCard
                 key={match.id}
                 match={match}
+                // Le pasamos el salvavidas directo
                 isPredictionMode={habilitadoParaJugar} 
                 prediction={predictions[match.id]}
                 onPredictionChange={handlePredictionChange}
