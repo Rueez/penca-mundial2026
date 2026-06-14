@@ -333,14 +333,17 @@ if (participantError) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {filteredMatches.map((match) => {
             // 👇 Calculamos si la hora actual ya pasó la hora de inicio del partido
-            const yaEmpezo = new Date() > new Date(match.fecha);
+            const ahoraMs = Date.now();
+            const partidoMs = new
+            Date(match.fecha).getTime();
+            const yaEmpezo = ahoraMs >= partidoMs;
 
             return (
               <MatchCard
                 key={match.id}
                 match={match}
                 // Si ya empezó, "isPredictionMode" pasa a ser false y se bloquea solo
-                isPredictionMode={!yaEmpezo} 
+                isPredictionMode={!yaEmpezo}
                 prediction={predictions[match.id]}
                 onPredictionChange={handlePredictionChange}
               />
