@@ -329,26 +329,41 @@ if (participantError) {
           ))}
         </div>
 
-       {/* Lista de Partidos */}
+     {/* Lista de Partidos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {filteredMatches.map((match) => {
-            // 1. Obtenemos la fecha y hora actual en formato ISO (Ej: "2026-06-14T16:15:00")
-            const ahoraISO = new Date().toISOString();
+            // 1. Obtenemos la hora actual de Uruguay (Ej: 16, 20) y los minutos
+            const ahora = new Date();
+            const horaActual = ahora.getHours();
+            const minutosActuales = ahora.getMinutes();
 
-            // 2. Limpiamos la fecha de la base de datos por seguridad para que tengan el mismo formato exacto
-            const fechaPartidoISO = new Date(match.fecha).toISOString();
+            // 2. Extraemos la hora del partido directamente del texto de Supabase
+            // Si "match.fecha" es "2026-06-14 17:00:00", esto saca un 17 y un 0
+            const textoFecha = match.fecha || "";
+            const partesTiempo = textoFecha.includes(" ") ? textoFecha.split(" ")[1] : textoFecha.split("T")[1];
             
-            // 3. El partido YA EMPEZÓ si la hora actual es mayor o igual a la del partido
-            const yaEmpezo = ahoraISO >= fechaPartidoISO;
+            let horaPartido = 0;
+            let minutosPartido = 0;
+            
+            if (partesTiempo) {
+              horaPartido = parseInt(partesTiempo.split(":")[0], 10);
+              minutosPartido = parseInt(partesTiempo.split(":")[1], 10);
+            }
 
-            // 4. CONDICIÓN SEGURA: Se puede jugar si NO empezó Y el estado NO es Finalizado
+            // 3. Calculamos el tiempo total en minutos desde que arrancó el día
+            const tiempoActualEnMinutos = (horaActual * 60) + minutosActuales;
+            const tiempoPartidoEnMinutos = (horaPartido * 60) + minutosPartido;
+
+            // 4. Bloqueamos el partido si ya se pasó de la hora o si ya está finalizado
+            // 🚨 NOTA: Si en Supabase pusiste la hora UTC (+3 horas), cambias la línea de abajo por:
+            // const yaEmpezo = tiempoActualEnMinutos >= (tiempoPartidoEnMinutos - 180);
+            const yaEmpezo = tiempoActualEnMinutos >= tiempoPartidoEnMinutos;
             const habilitadoParaJugar = !yaEmpezo && match.estado !== 'Finalizado';
 
             return (
               <MatchCard
                 key={match.id}
                 match={match}
-                // Le pasamos el resultado directo de nuestra lógica blindada
                 isPredictionMode={habilitadoParaJugar} 
                 prediction={predictions[match.id]}
                 onPredictionChange={handlePredictionChange}
