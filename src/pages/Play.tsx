@@ -329,21 +329,22 @@ if (participantError) {
           ))}
         </div>
 
-       {/* Lista de Partidos */}
+        {/* Lista de Partidos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {filteredMatches.map((match) => {
-            // 👇 Calculamos si la hora actual ya pasó la hora de inicio del partido
-            const ahoraMs = Date.now();
-            const partidoMs = new
-            Date(match.fecha).getTime();
-            const yaEmpezo = ahoraMs >= partidoMs;
+            // 🕒 Obtenemos la fecha y hora actual en el mismo formato ISO de la base de datos
+            // Esto genera un texto limpio como "2026-06-14T14:01:00.000Z"
+            const ahoraISO = new Date().toISOString();
+            
+            // 🛡️ Al ser dos cadenas de texto, JavaScript compara cuál es "mayor" alfabéticamente de forma perfecta
+            const yaEmpezo = ahoraISO >= match.fecha;
 
             return (
               <MatchCard
                 key={match.id}
                 match={match}
-                // Si ya empezó, "isPredictionMode" pasa a ser false y se bloquea solo
-                isPredictionMode={!yaEmpezo}
+                // Si ya empezó la hora ISO, se pasa false y oculta los inputs. Si no, queda abierto.
+                isPredictionMode={!yaEmpezo} 
                 prediction={predictions[match.id]}
                 onPredictionChange={handlePredictionChange}
               />
