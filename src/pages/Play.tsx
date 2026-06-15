@@ -332,21 +332,38 @@ if (participantError) {
      {/* Lista de Partidos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {filteredMatches.map((match) => {
-            // 🚨 BOTÓN DE PÁNICO: Si es el partido 9 o 11, lo FORZAMOS a estar abierto pase lo que pase
-            let habilitadoParaJugar = false;
+            // 1. Hora actual del usuario (Montevideo)
+            const ahora = new Date();
 
-            if (match.id === 9 || match.id === 11) {
-              habilitadoParaJugar = true;
-            } else {
-              // Para los partidos de los demás días, usamos la lógica estándar de Supabase
-              habilitadoParaJugar = match.estado !== 'Finalizado' && new Date() < new Date(match.fecha);
+            // 2. Parsear de forma segura el texto de Supabase "YYYY-MM-DD HH:MM:SS"
+            // Desarmamos el texto en piezas para que JavaScript no adivine la zona horaria
+            let yaEmpezo = false;
+            
+            if (match.fecha) {
+              // Reemplazamos la 'T' por un espacio por si viene en formato ISO
+              const fechaLimpia = match.fecha.replace('T', ' '); 
+              const [fechaParte, horaParte] = fechaLimpia.split(' ');
+              
+              if (fechaParte && horaParte) {
+                const [anio, mes, dia] = fechaParte.split('-').map(Number);
+                const [horas, minutos] = horaParte.split(':').map(Number);
+
+                // Creamos la fecha del partido obligando a que use la hora LOCAL del jugador (Uruguay)
+                // Nota: En JavaScript los meses van de 0 a 11, por eso hacemos (mes - 1)
+                const fechaPartidoLocal = new Date(anio, mes - 1, dia, horas, minutos, 0);
+
+                // Comparamos: si la hora actual es mayor o igual a la del partido, ya empezó
+                yaEmpezo = ahora >= fechaPartidoLocal;
+              }
             }
+
+            // 3. El partido se puede jugar si NO empezó y el estado NO es 'Finalizado'
+            const habilitadoParaJugar = !yaEmpezo && match.estado !== 'Finalizado';
 
             return (
               <MatchCard
                 key={match.id}
                 match={match}
-                // Le pasamos el salvavidas directo
                 isPredictionMode={habilitadoParaJugar} 
                 prediction={predictions[match.id]}
                 onPredictionChange={handlePredictionChange}
