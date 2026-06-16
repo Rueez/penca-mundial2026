@@ -115,7 +115,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         </div>
       </div>
 
-      {/* Extra Info (read mode prediction results) */}
+     {/* Extra Info (read mode prediction results) */}
       {!isPredictionMode && prediction && (
         <div className="mt-4 pt-3 border-t border-slate-800/40 flex justify-between items-center text-xs">
           <div className="text-slate-400 font-medium">
@@ -129,11 +129,23 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                   Exacto (+3)
                 </span>
               )}
+              
               {points === 1 && (
-                <span className="px-2 py-0.5 bg-blue-500/15 text-blue-400 border border-blue-500/20 font-bold rounded-lg text-[10px]">
-                  Ganador (+1)
-                </span>
+                <>
+                  {/* Si el partido real fue un empate, mostramos "Empate (+1)" */}
+                  {match.goles_local_real === match.goles_visitante_real ? (
+                    <span className="px-2 py-0.5 bg-slate-700/50 text-slate-300 border border-slate-600 font-bold rounded-lg text-[10px]">
+                      Empate (+1)
+                    </span>
+                  ) : (
+                    /* Si hubo un ganador real, dejamos el clásico "Ganador (+1)" */
+                    <span className="px-2 py-0.5 bg-blue-500/15 text-blue-400 border border-blue-500/20 font-bold rounded-lg text-[10px]">
+                      Ganador (+1)
+                    </span>
+                  )}
+                </>
               )}
+
               {points === 0 && (
                 <span className="px-2 py-0.5 bg-slate-800 text-slate-400 border border-slate-700 rounded-lg text-[10px]">
                   0 pts
