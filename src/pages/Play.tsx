@@ -8,7 +8,7 @@ import { isRegistrationClosed } from '../utils/timezone';
 import { Trophy, Save, CheckCircle } from 'lucide-react';
 import Login from './Login';
 
-type TabType = 'Grupos A-D' | 'Grupos E-H' | 'Grupos I-L' | '16avos' | 'Octavos' | 'Fase Final';
+type TabType = 'Grupos A-D' | 'Grupos E-H' | 'Grupos I-L' | '16avos' | 'Octavos' | 'Cuartos' | 'Semifinal' | 'Fase Final';
 
 export const Play: React.FC = () => {
   const navigate = useNavigate();
@@ -128,17 +128,19 @@ export const Play: React.FC = () => {
 
   // Filtrar partidos según la pestaña activa
   const getFilteredMatches = () => {
-    return matches.filter(m => {
-      const g = m.grupo;
-      if (activeTab === 'Grupos A-D') return ['Grupo A', 'Grupo B', 'Grupo C', 'Grupo D'].includes(g);
-      if (activeTab === 'Grupos E-H') return ['Grupo E', 'Grupo F', 'Grupo G', 'Grupo H'].includes(g);
-      if (activeTab === 'Grupos I-L') return ['Grupo I', 'Grupo J', 'Grupo K', 'Grupo L'].includes(g);
-      if (activeTab === '16avos') return g === '16avos';
-      if (activeTab === 'Octavos') return g === 'Octavos';
-      if (activeTab === 'Fase Final') return ['Cuartos', 'Semifinal', 'Tercer puesto', 'Final'].includes(g);
-      return false;
-    });
-  };
+  return matches.filter(m => {
+    const g = m.grupo;
+    if (activeTab === 'Grupos A-D') return ['Grupo A', 'Grupo B', 'Grupo C', 'Grupo D'].includes(g);
+    if (activeTab === 'Grupos E-H') return ['Grupo E', 'Grupo F', 'Grupo G', 'Grupo H'].includes(g);
+    if (activeTab === 'Grupos I-L') return ['Grupo I', 'Grupo J', 'Grupo K', 'Grupo L'].includes(g);
+    if (activeTab === '16avos') return g === '16avos';
+    if (activeTab === 'Octavos') return g === 'Octavos';
+    if (activeTab === 'Cuartos') return g === 'Cuartos';
+    if (activeTab === 'Semifinal') return g === 'Semifinal';
+    if (activeTab === 'Fase Final') return ['Tercer puesto', 'Final'].includes(g); // Acá entran el 3er puesto y la final juntos
+    return false;
+  });
+};
 
   // Enviar Penca completo (Modificación mediante UPSERT)
   const submitPenca = async () => {
@@ -235,21 +237,21 @@ export const Play: React.FC = () => {
         </div>
 
         {/* Pestañas de Navegación por Etapas */}
-        <div className="flex flex-wrap gap-2 mb-6 border-b border-slate-800/80 pb-4 justify-center md:justify-start">
-          {(['Grupos A-D', 'Grupos E-H', 'Grupos I-L', '16avos', 'Octavos', 'Fase Final'] as TabType[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 text-xs font-bold rounded-xl border transition ${
-                activeTab === tab
-                  ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md'
-                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
+<div className="flex flex-wrap gap-2 mb-6 border-b border-slate-800/80 pb-4 justify-center md:justify-start">
+  {(['Grupos A-D', 'Grupos E-H', 'Grupos I-L', '16avos', 'Octavos', 'Cuartos', 'Semifinal', 'Fase Final'] as TabType[]).map((tab) => (
+    <button
+      key={tab}
+      onClick={() => setActiveTab(tab)}
+      className={`px-4 py-2 text-xs font-bold rounded-xl border transition ${
+        activeTab === tab
+          ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md'
+          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+      }`}
+    >
+      {tab}
+    </button>
+  ))}
+</div>
 
         {/* Lista de Partidos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
