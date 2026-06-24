@@ -172,12 +172,11 @@ export const Play: React.FC = () => {
 
       // 2. Preparar el array de predicciones
       const pronosticosData = matches.map(m => ({
-        participante_id: idGuardado,
-        party_id: m.id, // O partido_id según tu schema, manteniendo tu mapeo
-        partido_id: m.id,
-        goles_local: predictions[m.id]?.goles_local ?? 0,
-        goles_visitante: predictions[m.id]?.goles_visitante ?? 0
-      }));
+  participante_id: idGuardado,
+  partido_id: m.id,
+  goles_local: predictions[m.id]?.goles_local ?? 0,
+  goles_visitante: predictions[m.id]?.goles_visitante ?? 0
+}));
 
       // 3. Usamos .upsert() para que modifique los goles viejos y no tire duplicados
       const { error: pronosticosError } = await supabase
