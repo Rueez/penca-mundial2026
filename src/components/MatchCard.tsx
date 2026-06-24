@@ -1,5 +1,5 @@
 import React from 'react';
-import  type { Partido } from '../types/database.types';
+import type { Partido } from '../types/database.types';
 import { formatToUruguayTime } from '../utils/timezone';
 
 interface MatchCardProps {
@@ -47,26 +47,23 @@ export const MatchCard: React.FC<MatchCardProps> = ({
           </div>
         </div>
 
-       {/* Home Score / Input */}
+        {/* Home Score / Input */}
         <div className="col-span-1 flex justify-center">
-          {isPredictionMode ? (
+          {isPredictionMode && match.estado !== 'Finalizado' && match.estado !== 'En juego' ? (
             <input
               type="number"
               min="0"
               placeholder="0"
               value={prediction?.goles_local ?? ''}
               onChange={(e) => handleInputChange('goles_local', e.target.value)}
-              disabled={match.estado === 'Finalizado' || match.estado === 'En juego'}
-              className={`w-12 h-10 text-center font-bold text-lg border rounded-xl focus:outline-none transition appearance-none ${
-                match.estado === 'Finalizado' || match.estado === 'En juego'
-                  ? 'bg-slate-900/80 border-slate-800 text-slate-500 cursor-not-allowed opacity-50'
-                  : 'bg-slate-950/60 border-slate-700 text-slate-50 focus:border-amber-400'
-              }`}
+              disabled={!isPredictionMode}
+              className="w-12 h-10 text-center font-bold text-lg border rounded-xl focus:outline-none transition appearance-none bg-slate-950/60 border-slate-700 text-slate-50 focus:border-amber-400"
             />
           ) : (
-            <div className={`text-2xl font-extrabold ${match.estado === 'Finalizado' ? 'text-slate-100' : 'text-slate-500'}`}>
-              {/* 🛡️ CORREGIDO: Ahora sí muestra los goles locales reales */}
-              {match.estado === 'Finalizado' ? match.goles_local_real : '-'}
+            <div className={`text-2xl font-extrabold ${match.estado === 'Finalizado' || match.estado === 'En juego' ? 'text-slate-100' : 'text-slate-500'}`}>
+              {match.estado === 'Finalizado' || match.estado === 'En juego' 
+                ? (match.goles_local_real ?? 0) 
+                : (prediction?.goles_local ?? '-')}
             </div>
           )}
         </div>
@@ -86,27 +83,25 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
         {/* Visitor Score / Input */}
         <div className="col-span-1 flex justify-center">
-          {isPredictionMode ? (
+          {isPredictionMode && match.estado !== 'Finalizado' && match.estado !== 'En juego' ? (
             <input
               type="number"
               min="0"
               placeholder="0"
               value={prediction?.goles_visitante ?? ''}
               onChange={(e) => handleInputChange('goles_visitante', e.target.value)}
-              disabled={match.estado === 'Finalizado' || match.estado === 'En juego'}
-              className={`w-12 h-10 text-center font-bold text-lg border rounded-xl focus:outline-none transition appearance-none ${
-                match.estado === 'Finalizado' || match.estado === 'En juego'
-                  ? 'bg-slate-900/80 border-slate-800 text-slate-500 cursor-not-allowed opacity-50'
-                  : 'bg-slate-950/60 border-slate-700 text-slate-50 focus:border-amber-400'
-              }`}
+              disabled={!isPredictionMode}
+              className="w-12 h-10 text-center font-bold text-lg border rounded-xl focus:outline-none transition appearance-none bg-slate-950/60 border-slate-700 text-slate-50 focus:border-amber-400"
             />
           ) : (
-            <div className={`text-2xl font-extrabold ${match.estado === 'Finalizado' ? 'text-slate-100' : 'text-slate-500'}`}>
-              {/* 🛡️ CORREGIDO: Muestra los goles visitantes reales */}
-              {match.estado === 'Finalizado' ? match.goles_visitante_real : '-'}
+            <div className={`text-2xl font-extrabold ${match.estado === 'Finalizado' || match.estado === 'En juego' ? 'text-slate-100' : 'text-slate-500'}`}>
+              {match.estado === 'Finalizado' || match.estado === 'En juego' 
+                ? (match.goles_visitante_real ?? 0) 
+                : (prediction?.goles_visitante ?? '-')}
             </div>
           )}
         </div>
+
         {/* Visitor Team */}
         <div className="col-span-2 flex flex-col items-center justify-center">
           <div className="text-sm font-bold text-slate-100 line-clamp-2 leading-tight">
@@ -115,7 +110,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         </div>
       </div>
 
-     {/* Extra Info (read mode prediction results) */}
+      {/* Extra Info (read mode prediction results) */}
       {!isPredictionMode && prediction && (
         <div className="mt-4 pt-3 border-t border-slate-800/40 flex justify-between items-center text-xs">
           <div className="text-slate-400 font-medium">
@@ -132,13 +127,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
               
               {points === 1 && (
                 <>
-                  {/* Si el partido real fue un empate, mostramos "Empate (+1)" */}
                   {match.goles_local_real === match.goles_visitante_real ? (
                     <span className="px-2 py-0.5 bg-slate-700/50 text-slate-300 border border-slate-600 font-bold rounded-lg text-[10px]">
                       Empate (+1)
                     </span>
                   ) : (
-                    /* Si hubo un ganador real, dejamos el clásico "Ganador (+1)" */
                     <span className="px-2 py-0.5 bg-blue-500/15 text-blue-400 border border-blue-500/20 font-bold rounded-lg text-[10px]">
                       Ganador (+1)
                     </span>

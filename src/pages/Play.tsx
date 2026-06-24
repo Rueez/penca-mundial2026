@@ -6,9 +6,10 @@ import { MatchCard } from '../components/MatchCard';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { isRegistrationClosed } from '../utils/timezone';
 import { User, Trophy, Save, AlertCircle, CheckCircle } from 'lucide-react';
+import Login from './Login';
 
-type TabType = 'Grupos A-D' | 'Grupos E-H' | 'Grupos I-L' | 'Dieciseisavos' | 'Octavos' | 'Fase Final';
-
+// 🛡️ CORREGIDO: Agregamos '32avos' al tipo de las pestañas
+type TabType = 'Grupos A-D' | 'Grupos E-H' | 'Grupos I-L' | '16avos' | 'Octavos' | 'Fase Final';
 export const Play: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -16,9 +17,13 @@ export const Play: React.FC = () => {
   const [matches, setMatches] = useState<Partido[]>([]);
   const [teams, setTeams] = useState<string[]>([]);
   
-  // Paso y Flujo
-  const [step, setStep] = useState(1); // 1: Nombre, 2: Pronósticos y Especiales, 3: Éxito
-  const [name, setName] = useState('');
+  // 🛡️ Extraemos los datos guardados en el login
+  const idGuardado = localStorage.getItem('participante_id');
+  const nombreGuardado = localStorage.getItem('participante_nombre') || '';
+
+  // 🛡️ Si ya está logueado, arrancamos directo en el paso 2 (los partidos)
+  const [step, setStep] = useState(idGuardado ? 2 : 1); // 1: Nombre, 2: Pronósticos, 3: Éxito
+  const [name, setName] = useState(nombreGuardado);
   const [nameError, setNameError] = useState('');
   
   // Predicciones
@@ -31,35 +36,72 @@ export const Play: React.FC = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   
   const isClosed = isRegistrationClosed();
-// Cargar partidos y equipos
+
+  // 🛡️ FILTRO DE SEGURIDAD: Si no hay ID en la sesión, frena acá y pide clave
+  if (!idGuardado) {
+    return <Login onLoginSuccess={() => window.location.reload()} />;
+  }
+
+  // Cargar partidos, equipos y pronósticos existentes
   useEffect(() => {
-    if (isClosed) return;
+    // 🛡️ COMENTADO: Para permitir jugar/modificar las fases eliminatorias (32avos adelante)
+    // if (isClosed) return;
 
     const loadData = async () => {
       try {
         setLoading(true);
+        
         // 1. Cargar todos los partidos ordenados por FECHA
         const { data: matchesData, error: matchesError } = await supabase
           .from('partidos')
           .select('*')
-          .order('fecha', { ascending: true }); // 🛡️ CORREGIDO: De id a fecha
+          .order('fecha', { ascending: true });
 
         if (matchesError) throw matchesError;
 
         if (matchesData) {
           setMatches(matchesData as Partido[]);
           
-          // Inicializar predicciones con 0-0 por defecto
+          // Inicializar predicciones base en 0-0
           const initialPredictions: Record<number, { goles_local: number; goles_visitante: number }> = {};
           matchesData.forEach(m => {
             initialPredictions[m.id] = { goles_local: 0, goles_visitante: 0 };
           });
+
+          // 🛡️ Traer los pronósticos que este usuario YA GUARDÓ anteriormente para poder modificarlos
+          const { data: existingPredictions, error: predError } = await supabase
+            .from('pronosticos')
+            .select('*')
+            .eq('participante_id', idGuardado);
+
+          if (!predError && existingPredictions) {
+            existingPredictions.forEach(p => {
+              if (initialPredictions[p.partido_id]) {
+                initialPredictions[p.partido_id] = {
+                  goles_local: p.goles_local,
+                  goles_visitante: p.goles_visitante
+                };
+              }
+            });
+          }
+
           setPredictions(initialPredictions);
+
+          // 🛡️ Traer las selecciones de Campeón/Subcampeón que ya guardó
+          const { data: partData } = await supabase
+            .from('participantes')
+            .select('campeon, subcampeon')
+            .eq('id', idGuardado)
+            .maybeSingle();
+
+          if (partData) {
+            setChampion(partData.campeon || '');
+            setSubchampion(partData.subcampeon || '');
+          }
 
           // 2. Extraer los equipos de fase de grupos
           const groupTeams = new Set<string>();
           matchesData.forEach(m => {
-            // Se agrega el "m.grupo &&" por seguridad
             if (m.grupo && m.grupo.startsWith('Grupo')) {
               groupTeams.add(m.equipo_local);
               groupTeams.add(m.equipo_visitante);
@@ -75,9 +117,9 @@ export const Play: React.FC = () => {
     };
 
     loadData();
-  }, [isClosed]);
+  }, [isClosed, idGuardado]);
 
-  // Paso 1: Validar Nombre
+  // Paso 1: Validar Nombre (Ya no se usa normalmente, pero queda por si las dudas)
   const handleNameSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanName = name.trim();
@@ -85,31 +127,10 @@ export const Play: React.FC = () => {
       setNameError('El nombre no puede estar vacío.');
       return;
     }
-
-    try {
-      setNameError('');
-      // Consultar si ya existe en la base de datos
-      const { data, error } = await supabase
-        .from('participantes')
-        .select('id')
-        .eq('nombre', cleanName)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data) {
-        setNameError('Este nombre ya tiene una penca registrada.');
-      } else {
-        // Proceder al paso 2
-        setStep(2);
-      }
-    } catch (err) {
-      console.error('Error al validar nombre:', err);
-      setNameError('Error al validar el nombre. Inténtalo de nuevo.');
-    }
+    setStep(2);
   };
 
-  // Guardar marcador de predicción
+  // Guardar marcador de predicción en el estado local
   const handlePredictionChange = (matchId: number, field: 'goles_local' | 'goles_visitante', value: number) => {
     setPredictions(prev => ({
       ...prev,
@@ -124,29 +145,18 @@ export const Play: React.FC = () => {
   const getFilteredMatches = () => {
     return matches.filter(m => {
       const g = m.grupo;
-      if (activeTab === 'Grupos A-D') {
-        return ['Grupo A', 'Grupo B', 'Grupo C', 'Grupo D'].includes(g);
-      }
-      if (activeTab === 'Grupos E-H') {
-        return ['Grupo E', 'Grupo F', 'Grupo G', 'Grupo H'].includes(g);
-      }
-      if (activeTab === 'Grupos I-L') {
-        return ['Grupo I', 'Grupo J', 'Grupo K', 'Grupo L'].includes(g);
-      }
-      if (activeTab === 'Dieciseisavos') {
-        return g === 'Dieciseisavos';
-      }
-      if (activeTab === 'Octavos') {
-        return g === 'Octavos';
-      }
-      if (activeTab === 'Fase Final') {
-        return ['Cuartos', 'Semifinal', 'Tercer puesto', 'Final'].includes(g);
-      }
+      if (activeTab === 'Grupos A-D') return ['Grupo A', 'Grupo B', 'Grupo C', 'Grupo D'].includes(g);
+      if (activeTab === 'Grupos E-H') return ['Grupo E', 'Grupo F', 'Grupo G', 'Grupo H'].includes(g);
+      if (activeTab === 'Grupos I-L') return ['Grupo I', 'Grupo J', 'Grupo K', 'Grupo L'].includes(g);
+      if (activeTab === '16avos') return g === '16avos'; // 🛡️ AGREGADO: Filtro para los nuevos partidos
+      if (activeTab === 'Dieciseisavos') return g === 'Dieciseisavos';
+      if (activeTab === 'Octavos') return g === 'Octavos';
+      if (activeTab === 'Fase Final') return ['Cuartos', 'Semifinal', 'Tercer puesto', 'Final'].includes(g);
       return false;
     });
   };
 
-  // Enviar Penca completo
+  // Enviar Penca completo (Modificación mediante UPSERT)
   const submitPenca = async () => {
     setIsConfirmOpen(false);
     
@@ -163,42 +173,31 @@ export const Play: React.FC = () => {
     try {
       setSubmitting(true);
 
-      // 1. Guardar el participante en la base de datos (con bloqueado=true)
-      const { data: newParticipant, error: participantError } = await supabase
+      // 1. Actualizar campeón y subcampeón en vez de insertar uno nuevo
+      const { error: participantError } = await supabase
         .from('participantes')
-        .insert([
-          {
-            nombre: name.trim(),
-            campeon: champion,
-            subcampeon: subchampion,
-          }
-        ])
-        .select()
-        .single();
+        .update({
+          campeon: champion,
+          subcampeon: subchampion,
+        })
+        .eq('id', idGuardado);
 
-if (participantError) {
-  console.error("PARTICIPANT ERROR:", participantError);
-  alert(JSON.stringify(participantError));
-  throw participantError;
-}
+      if (participantError) throw participantError;
+
       // 2. Preparar el array de predicciones
       const pronosticosData = matches.map(m => ({
-        participante_id: newParticipant.id,
+        participante_id: idGuardado,
         partido_id: m.id,
         goles_local: predictions[m.id]?.goles_local ?? 0,
         goles_visitante: predictions[m.id]?.goles_visitante ?? 0
       }));
 
-      // 3. Insertar todas las predicciones
+      // 3. Usamos .upsert() para que modifique los goles viejos y no tire duplicados
       const { error: pronosticosError } = await supabase
         .from('pronosticos')
-        .insert(pronosticosData);
+        .upsert(pronosticosData, { onConflict: 'participante_id,partido_id' });
 
-      if (pronosticosError) {
-        // En caso de fallo, intentamos limpiar el participante
-        await supabase.from('participantes').delete().eq('id', newParticipant.id);
-        throw pronosticosError;
-      }
+      if (pronosticosError) throw pronosticosError;
 
       // 4. Ir a la pantalla de éxito
       setStep(3);
@@ -210,28 +209,6 @@ if (participantError) {
     }
   };
 
-  if (isClosed) {
-    return (
-      <div className="max-w-md mx-auto px-4 py-16 text-center">
-        <div className="glass-panel p-8 rounded-3xl border-red-500/20 shadow-2xl">
-          <div className="w-16 h-16 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center mx-auto mb-6">
-            <AlertCircle className="h-8 w-8" />
-          </div>
-          <h2 className="text-2xl font-black text-slate-100 mb-4">Inscripciones Cerradas</h2>
-          <p className="text-slate-400 text-sm leading-relaxed mb-6">
-            Las inscripciones para la Penca Mundial 2026 ya se encuentran cerradas debido a que ha comenzado el primer partido del torneo.
-          </p>
-          <Link
-            to="/"
-            className="inline-flex w-full justify-center px-5 py-2.5 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 hover:text-white rounded-xl transition font-bold"
-          >
-            Volver al Inicio
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -240,61 +217,21 @@ if (participantError) {
     );
   }
 
-  // Paso 1: Ingreso de Nombre
+  // Paso 1: Ingreso de Nombre (Ocultado por el login, pero conservado)
   if (step === 1) {
     return (
       <div className="max-w-md mx-auto px-4 py-16">
         <div className="glass-panel p-8 rounded-3xl shadow-2xl relative overflow-hidden">
-          <div className="absolute inset-0 bg-linear-to-b from-amber-500/5 to-transparent pointer-events-none" />
-          
-          <div className="w-16 h-16 bg-amber-500/10 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-6 z-10 relative">
-            <User className="h-8 w-8" />
-          </div>
-          
-          <h2 className="text-2xl font-black text-center text-slate-100 mb-2 z-10 relative">Tu Participación</h2>
-          <p className="text-slate-400 text-center text-xs leading-relaxed mb-8 z-10 relative">
-            Ingresa tu nombre para comenzar a rellenar tus pronósticos. DESPUES DE COMPLETAR Y ENVIAR LA PENCA NO SE PUEDE MODIFICAR
-          </p>
-
-          <form onSubmit={handleNameSubmit} className="space-y-6 z-10 relative">
-            <div>
-              <label htmlFor="nombre" className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                Nombre de Participante
-              </label>
-              <input
-                id="nombre"
-                type="text"
-                autoFocus
-                placeholder="Ej: Juan Pérez"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  setNameError('');
-                }}
-                className={`w-full px-4 py-3 bg-slate-950/60 border ${
-                  nameError ? 'border-red-500' : 'border-slate-700 focus:border-amber-400'
-                } rounded-xl text-slate-100 placeholder-slate-600 focus:outline-none transition font-semibold`}
-              />
-              {nameError && (
-                <p className="text-red-500 text-xs font-semibold mt-2 flex items-center gap-1">
-                  <AlertCircle className="h-3.5 w-3.5" /> {nameError}
-                </p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3.5 font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-xl transition shadow-lg shadow-amber-400/10"
-            >
-              Continuar a Pronósticos
-            </button>
-          </form>
+          <h2 className="text-2xl font-black text-center text-slate-100 mb-6">Tu Participación</h2>
+          <button onClick={() => setStep(2)} className="w-full py-3.5 font-bold text-slate-950 bg-amber-400 rounded-xl">
+            Ir a mis partidos
+          </button>
         </div>
       </div>
     );
   }
 
-  // Paso 2: Llenar Pronósticos
+  // Paso 2: Llenar/Modificar Pronósticos
   if (step === 2) {
     const filteredMatches = getFilteredMatches();
     
@@ -303,25 +240,26 @@ if (participantError) {
         {/* Header de bienvenida */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 bg-slate-900/40 p-5 border border-slate-800/80 rounded-2xl">
           <div>
-            <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Participante</span>
+            <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Participante Logueado</span>
             <h2 className="text-2xl font-black text-slate-100">{name}</h2>
           </div>
           <div className="text-right hidden md:block">
-            <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Mundial FIFA 2026</span>
-            <div className="text-sm font-semibold text-amber-400">104 Partidos a Pronosticar</div>
+            <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Penca Activa</span>
+            <div className="text-sm font-semibold text-amber-400">Modificá tus resultados</div>
           </div>
         </div>
 
         {/* Pestañas de Navegación por Etapas */}
         <div className="flex flex-wrap gap-2 mb-6 border-b border-slate-800/80 pb-4 justify-center md:justify-start">
-          {(['Grupos A-D', 'Grupos E-H', 'Grupos I-L', 'Dieciseisavos', 'Octavos', 'Fase Final'] as TabType[]).map((tab) => (
-            <button
+          {/* 🛡️ CORREGIDO: Sintaxis del .map limpia y sumamos '32avos' */}
+        {(['Grupos A-D', 'Grupos E-H', 'Grupos I-L', '16avos', 'Octavos', 'Fase Final'] as TabType[]).map((tab) => (
+              <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 text-xs font-bold rounded-xl border transition ${
                 activeTab === tab
-                  ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md shadow-amber-400/5'
-                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                  ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md'
+                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
               }`}
             >
               {tab}
@@ -329,35 +267,19 @@ if (participantError) {
           ))}
         </div>
 
-     {/* Lista de Partidos */}
+        {/* Lista de Partidos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {filteredMatches.map((match) => {
-            // 1. Hora actual del usuario (Montevideo)
             const ahora = new Date();
-
-            // 2. Parsear de forma segura el texto de Supabase "YYYY-MM-DD HH:MM:SS"
-            // Desarmamos el texto en piezas para que JavaScript no adivine la zona horaria
             let yaEmpezo = false;
             
-            if (match.fecha) {
-              // Reemplazamos la 'T' por un espacio por si viene en formato ISO
-              const fechaLimpia = match.fecha.replace('T', ' '); 
-              const [fechaParte, horaParte] = fechaLimpia.split(' ');
-              
-              if (fechaParte && horaParte) {
-                const [anio, mes, dia] = fechaParte.split('-').map(Number);
-                const [horas, minutos] = horaParte.split(':').map(Number);
-
-                // Creamos la fecha del partido obligando a que use la hora LOCAL del jugador (Uruguay)
-                // Nota: En JavaScript los meses van de 0 a 11, por eso hacemos (mes - 1)
-                const fechaPartidoLocal = new Date(anio, mes - 1, dia, horas, minutos, 0);
-
-                // Comparamos: si la hora actual es mayor o igual a la del partido, ya empezó
-                yaEmpezo = ahora >= fechaPartidoLocal;
-              }
+            if (match.fecha && match.hora) {
+              const stringFechaHora = `${match.fecha}T${match.hora}-03:00`;
+              const fechaPartido = new Date(stringFechaHora);
+              yaEmpezo = ahora >= fechaPartido;
             }
 
-            // 3. El partido se puede jugar si NO empezó y el estado NO es 'Finalizado'
+            // El código calcula de forma matemática y exacta si está habilitado
             const habilitadoParaJugar = !yaEmpezo && match.estado !== 'Finalizado';
 
             return (
@@ -372,29 +294,25 @@ if (participantError) {
           })}
         </div>
 
-        {/* Predicciones Especiales (solo se muestra en la pestaña Fase Final para no estorbar, o al final de la página) */}
+        {/* Predicciones Especiales */}
         <div className="glass-panel p-6 rounded-2xl border-slate-800/80 mb-8 relative overflow-hidden">
-          <div className="absolute inset-0 bg-linear-to-r from-amber-500/5 to-transparent pointer-events-none" />
           <div className="flex items-center gap-2 mb-4 border-b border-slate-800/60 pb-3">
             <Trophy className="h-5 w-5 text-amber-400" />
             <h3 className="text-lg font-black text-slate-100">Predicciones Especiales</h3>
           </div>
-          <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-            Suma puntos adicionales al final de la copa si aciertas el Campeón (+10 puntos) y el Subcampeón (+5 puntos).
-          </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label htmlFor="campeon" className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                Campeón del Mundial
+                Campeon del Mundial
               </label>
               <select
                 id="campeon"
                 value={champion}
                 onChange={(e) => setChampion(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:border-amber-400 focus:outline-none transition font-semibold"
+                className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none transition font-semibold"
               >
-                <option value="" disabled>Selecciona un país...</option>
+                <option value="" disabled>Selecciona un pais...</option>
                 {teams.map((t) => (
                   <option key={t} value={t}>{t}</option>
                 ))}
@@ -403,15 +321,15 @@ if (participantError) {
 
             <div>
               <label htmlFor="subcampeon" className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                Subcampeón del Mundial
+                Subcampeon del Mundial
               </label>
               <select
                 id="subcampeon"
                 value={subchampion}
                 onChange={(e) => setSubchampion(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:border-amber-400 focus:outline-none transition font-semibold"
+                className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none transition font-semibold"
               >
-                <option value="" disabled>Selecciona un país...</option>
+                <option value="" disabled>Selecciona un pais...</option>
                 {teams.map((t) => (
                   <option key={t} value={t}>{t}</option>
                 ))}
@@ -420,42 +338,33 @@ if (participantError) {
           </div>
         </div>
 
-        {/* Botón de Enviar Penca */}
+        {/* Boton de Enviar Penca */}
         <div className="flex justify-end gap-4 border-t border-slate-800/80 pt-6">
-          <button
-            onClick={() => setStep(1)}
-            disabled={submitting}
-            className="px-5 py-3 text-sm font-semibold text-slate-400 hover:text-slate-200 transition"
-          >
-            Volver al Nombre
-          </button>
-          
           <button
             onClick={() => {
               if (!champion || !subchampion) {
-                alert('Por favor selecciona el Campeón y Subcampeón.');
+                alert('Por favor selecciona el Campeon y Subcampeon.');
                 return;
               }
               if (champion === subchampion) {
-                alert('El campeón y subcampeón no pueden ser el mismo equipo.');
+                alert('El campeon y subcampeon no pueden ser el mismo equipo.');
                 return;
               }
               setIsConfirmOpen(true);
             }}
             disabled={submitting}
-            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-xl transition shadow-lg shadow-amber-400/15"
+            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-xl transition shadow-lg"
           >
-            <Save className="h-4 w-4" /> Enviar Penca
+            <Save className="h-4 w-4" /> Guardar Cambios
           </button>
         </div>
 
-        {/* Ventana de confirmación */}
         <ConfirmDialog
           isOpen={isConfirmOpen}
           onConfirm={submitPenca}
           onCancel={() => setIsConfirmOpen(false)}
-          title="Confirmar Penca"
-          message="Una vez enviada la penca no podrás modificar tus pronósticos. ¿Deseas continuar?"
+          title="Confirmar Modificacion"
+          message="¿Estas seguro de que queres actualizar tus pronosticos?"
         />
       </div>
     );
@@ -474,11 +383,11 @@ if (participantError) {
           
           <h2 className="text-2xl font-black text-slate-100 mb-2 z-10 relative">Penca Guardada</h2>
           <p className="text-emerald-400 text-xs font-bold uppercase tracking-wider mb-6 z-10 relative">
-            ✅ Pronósticos enviados correctamente
+            ✅ Pronosticos enviados correctamente
           </p>
           
           <p className="text-slate-400 text-sm leading-relaxed mb-8 z-10 relative">
-            Tu participación ha quedado registrada de forma segura. Tus pronósticos están bloqueados y no podrán ser modificados. Podrás seguir el ranking en tiempo real y consultar los pronósticos de los demás amigos en los listados públicos.
+            Tus cambios han quedado guardados de forma segura en el sistema. Podras modificarlos de nuevo las veces que quieras antes de que empiece cada partido. ¡Mucho exito!
           </p>
 
           <div className="space-y-3 z-10 relative">
@@ -492,7 +401,7 @@ if (participantError) {
               onClick={() => navigate('/participantes')}
               className="inline-flex w-full justify-center py-3 text-sm font-bold text-slate-200 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl transition"
             >
-              Ver Pronósticos
+              Ver Pronosticos
             </button>
           </div>
         </div>
