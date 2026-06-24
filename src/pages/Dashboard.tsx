@@ -5,12 +5,15 @@ import type { Partido } from '../types/database.types';
 import { StatsDashboard } from '../components/StatsDashboard';
 import { MatchCard } from '../components/MatchCard';
 import { isRegistrationClosed } from '../utils/timezone';
-import { Trophy, ArrowRight, Play, AlertCircle } from 'lucide-react';
+import { Trophy, ArrowRight, LogIn, Edit3, AlertCircle } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [upcomingMatches, setUpcomingMatches] = useState<Partido[]>([]);
   
+  // Verificamos si el usuario ya está logueado en esta sesión
+  const usuarioLogueado = localStorage.getItem('participante_id');
+
   // 1. Estado inicial con setStats disponible para las actualizaciones
   const [stats, setStats] = useState({
     leaderName: 'Nadie aún',
@@ -90,7 +93,7 @@ export const Dashboard: React.FC = () => {
     };
 
     fetchDashboardData();
-  }, []); // 👈 UN SOLO EFFECT. El bloque repetido que tenías abajo ya fue eliminado.
+  }, []);
 
   if (loading) {
     return (
@@ -116,26 +119,34 @@ export const Dashboard: React.FC = () => {
           <p className="text-slate-400 text-sm md:text-base leading-relaxed mb-6">
             Una penca para los muchachos del laburo. 
           </p>
-          <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-6 text-center">
-  <h3 className="text-lg font-bold text-green-400">
-    🏆 Premio acumulado: ${stats.totalParticipants * 300}
-  </h3>
-  <p className="text-sm text-slate-400">
-    {stats.totalParticipants} participantes × $300
-  </p>
-  <br />
-  <p>
-  El premio acumulado se repartirá entre el 1° y 2° lugar
-  </p>
-</div>
-    
+          
+          <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-6 text-center md:text-left">
+            <h3 className="text-lg font-bold text-green-400">
+              🏆 Premio acumulado: ${stats.totalParticipants * 300}
+            </h3>
+            <p className="text-sm text-slate-400">
+              {stats.totalParticipants} participantes × $300
+            </p>
+            <p className="text-xs text-slate-400 mt-2">
+              El premio acumulado se repartirá entre el 1° y 2° lugar
+            </p>
+          </div>
+     
           <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-4">
             {!isClosed ? (
               <Link
                 to="/jugar"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-xl transition shadow-lg shadow-amber-400/20"
               >
-                <Play className="h-5 w-5 fill-current" /> Registrar mi Penca
+                {usuarioLogueado ? (
+                  <>
+                    <Edit3 className="h-4 w-4" /> Modificar mis Pronósticos
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="h-4 w-4" /> Ingresar a la Penca
+                  </>
+                )}
               </Link>
             ) : (
               <div className="inline-flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm font-semibold">
@@ -143,6 +154,7 @@ export const Dashboard: React.FC = () => {
                 Las inscripciones para la Penca Mundial 2026 ya se encuentran cerradas.
               </div>
             )}
+            
             <Link
               to="/ranking"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 font-bold text-slate-200 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl transition"
