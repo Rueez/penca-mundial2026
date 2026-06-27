@@ -4,7 +4,7 @@ import type { Partido, RankingRow, Pronostico, Puntuacion } from '../types/datab
 import { MatchCard } from '../components/MatchCard';
 import { Search, User, Trophy, Star} from 'lucide-react';
 
-type TabType = 'Grupos A-D' | 'Grupos E-H' | 'Grupos I-L' | 'Dieciseisavos' | 'Octavos' | 'Fase Final';
+type TabType = 'Grupos A-D' | 'Grupos E-H' | 'Grupos I-L' | '16avos' | 'Octavos' | 'Cuartos' | 'Semifinales' | 'Fase Final';
 
 export const Participants: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -118,14 +118,20 @@ export const Participants: React.FC = () => {
       if (activeTab === 'Grupos I-L') {
         return ['Grupo I', 'Grupo J', 'Grupo K', 'Grupo L'].includes(g);
       }
-      if (activeTab === 'Dieciseisavos') {
-        return g === 'Dieciseisavos';
+      if (activeTab === '16avos') {
+        return g === '16avos';
       }
       if (activeTab === 'Octavos') {
         return g === 'Octavos';
       }
+      if (activeTab === 'Cuartos') {
+        return g === 'Cuartos'; 
+      }
+      if (activeTab === 'Semifinales') {
+        return g === 'Semifinal'; 
+      }
       if (activeTab === 'Fase Final') {
-        return ['Cuartos', 'Semifinal', 'Tercer puesto', 'Final'].includes(g);
+        return ['Tercer puesto', 'Final'].includes(g); // <-- Solo el cierre del torneo
       }
       return false;
     });
@@ -243,21 +249,30 @@ export const Participants: React.FC = () => {
               </div>
 
               {/* Pestañas de Etapas */}
-              <div className="flex flex-wrap gap-2 mb-6 border-b border-slate-800/80 pb-4 justify-center md:justify-start">
-                {(['Grupos A-D', 'Grupos E-H', 'Grupos I-L', 'Dieciseisavos', 'Octavos', 'Fase Final'] as TabType[]).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition ${
-                      activeTab === tab
-                        ? 'bg-amber-400 text-slate-950 border-amber-400'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
+<div className="flex flex-wrap gap-2 mb-6 border-b border-slate-800/80 pb-4 justify-center md:justify-start">
+  {([
+    'Grupos A-D', 
+    'Grupos E-H', 
+    'Grupos I-L', 
+    '16avos', 
+    'Octavos', 
+    'Cuartos',       // <-- Agregado
+    'Semifinales',   // <-- Agregado
+    'Fase Final'
+  ] as TabType[]).map((tab) => (
+    <button
+      key={tab}
+      onClick={() => setActiveTab(tab)}
+      className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition ${
+        activeTab === tab
+          ? 'bg-amber-400 text-slate-950 border-amber-400'
+          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+      }`}
+    >
+      {tab}
+    </button>
+  ))}
+</div>
 
               {/* Detalle de Pronósticos */}
               {loadingDetails ? (
