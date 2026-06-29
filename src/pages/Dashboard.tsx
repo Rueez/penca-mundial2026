@@ -43,19 +43,25 @@ export const Dashboard: React.FC = () => {
         const matchesData = matchesResponse.data as Partido[] || [];
         const rankingData = rankingResponse.data || [];
         console.log("DATOS DEL RANKING EN EL DASHBOARD:", rankingData);
+// 3. Filtrar partidos próximos para las tarjetas de abajo
+        const filtered = matchesData
+          .filter((m) => {
+            const noFinalizado = m.estado !== "Finalizado";
+            const noPlaceholder =
+              !m.equipo_local?.includes("Ganador") &&
+              !m.equipo_local?.includes("Perdedor") &&
+              !m.equipo_visitante?.includes("Ganador") &&
+              !m.equipo_visitante?.includes("Perdedor");
 
-        // 3. Filtrar partidos próximos para las tarjetas de abajo
-        const filtered = matchesData.filter((m) => {
-          const esGrupo = m.grupo?.startsWith("Grupo");
-          const noFinalizado = m.estado !== "Finalizado";
-          const noPlaceholder =
-            !m.equipo_local?.includes("Ganador") &&
-            !m.equipo_local?.includes("Perdedor") &&
-            !m.equipo_visitante?.includes("Ganador") &&
-            !m.equipo_visitante?.includes("Perdedor");
+            return noFinalizado && noPlaceholder;
+          })
+          .sort((a, b) => {
+            const fechaA = new Date(`${a.fecha}T${a.hora || '00:00:00'}`).getTime();
+            const fechaB = new Date(`${b.fecha}T${b.hora || '00:00:00'}`).getTime();
+            return fechaA - fechaB;
+          })
+          .slice(0, 6);
 
-          return esGrupo && noFinalizado && noPlaceholder;
-        });
         setUpcomingMatches(filtered);
 
         // 4. Procesar y calcular estadísticas reales en tiempo de ejecución
