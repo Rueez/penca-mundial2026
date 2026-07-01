@@ -283,14 +283,14 @@ export const Play: React.FC = () => {
           <div className="flex items-center gap-2 mb-4 border-b border-slate-800/60 pb-3">
             <Trophy className="h-5 w-5 text-amber-400" />
             <h3 className="text-lg font-black text-slate-100">Predicciones Especiales</h3>
-            {/* Forzamos true directo acá también para que el cartel se ponga en rojo */}
-            {true ? (
+            {/* Si ya tiene campeón y subcampeón guardados, muestra "Cerradas" */}
+            {(champion && subchampion) ? (
               <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md">
                 Elecciones Cerradas
               </span>
             ) : (
               <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md">
-                Puntos Extra
+                Único intento disponible
               </span>
             )}
           </div>
@@ -304,7 +304,8 @@ export const Play: React.FC = () => {
                 id="campeon"
                 value={champion}
                 onChange={(e) => setChampion(e.target.value)}
-                disabled={true}
+                /* Se bloquea automáticamente si ya hay datos guardados */
+                disabled={!!(champion && subchampion)} 
                 className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:border-slate-800"
               >
                 <option value="" disabled>Selecciona un pais...</option>
@@ -322,7 +323,8 @@ export const Play: React.FC = () => {
                 id="subcampeon"
                 value={subchampion}
                 onChange={(e) => setSubchampion(e.target.value)}
-                disabled={true}
+                /* Se bloquea automáticamente si ya hay datos guardados */
+                disabled={!!(champion && subchampion)} 
                 className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:border-slate-800"
               >
                 <option value="" disabled>Selecciona un pais...</option>
