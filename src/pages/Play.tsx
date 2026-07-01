@@ -30,6 +30,9 @@ export const Play: React.FC = () => {
   const [champion, setChampion] = useState('');
   const [subchampion, setSubchampion] = useState('');
   
+  // Testigo de estado persistido en Base de Datos para bloquear Predicciones Especiales
+  const [hasPredictionsSaved, setHasPredictionsSaved] = useState(false);
+  
   // UI Tabs
   const [activeTab, setActiveTab] = useState<TabType>('Grupos A-D');
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -93,6 +96,11 @@ export const Play: React.FC = () => {
           if (partData) {
             setChampion(partData.campeon || '');
             setSubchampion(partData.subcampeon || '');
+            
+            // Si en Supabase ya existen datos guardados (no son NULL ni vacíos), activamos el bloqueo permanente
+            if (partData.campeon && partData.subcampeon) {
+              setHasPredictionsSaved(true);
+            }
           }
 
           // 2. Extraer los equipos de fase de grupos
@@ -128,19 +136,19 @@ export const Play: React.FC = () => {
 
   // Filtrar partidos según la pestaña activa
   const getFilteredMatches = () => {
-  return matches.filter(m => {
-    const g = m.grupo;
-    if (activeTab === 'Grupos A-D') return ['Grupo A', 'Grupo B', 'Grupo C', 'Grupo D'].includes(g);
-    if (activeTab === 'Grupos E-H') return ['Grupo E', 'Grupo F', 'Grupo G', 'Grupo H'].includes(g);
-    if (activeTab === 'Grupos I-L') return ['Grupo I', 'Grupo J', 'Grupo K', 'Grupo L'].includes(g);
-    if (activeTab === '16avos') return g === '16avos';
-    if (activeTab === 'Octavos') return g === 'Octavos';
-    if (activeTab === 'Cuartos') return g === 'Cuartos';
-    if (activeTab === 'Semifinal') return g === 'Semifinal';
-    if (activeTab === 'Fase Final') return ['Tercer puesto', 'Final'].includes(g); // Acá entran el 3er puesto y la final juntos
-    return false;
-  });
-};
+    return matches.filter(m => {
+      const g = m.grupo;
+      if (activeTab === 'Grupos A-D') return ['Grupo A', 'Grupo B', 'Grupo C', 'Grupo D'].includes(g);
+      if (activeTab === 'Grupos E-H') return ['Grupo E', 'Grupo F', 'Grupo G', 'Grupo H'].includes(g);
+      if (activeTab === 'Grupos I-L') return ['Grupo I', 'Grupo J', 'Grupo K', 'Grupo L'].includes(g);
+      if (activeTab === '16avos') return g === '16avos';
+      if (activeTab === 'Octavos') return g === 'Octavos';
+      if (activeTab === 'Cuartos') return g === 'Cuartos';
+      if (activeTab === 'Semifinal') return g === 'Semifinal';
+      if (activeTab === 'Fase Final') return ['Tercer puesto', 'Final'].includes(g);
+      return false;
+    });
+  };
 
   // Enviar Penca completo (Modificación mediante UPSERT)
   const submitPenca = async () => {
@@ -172,11 +180,11 @@ export const Play: React.FC = () => {
 
       // 2. Preparar el array de predicciones
       const pronosticosData = matches.map(m => ({
-  participante_id: idGuardado,
-  partido_id: m.id,
-  goles_local: predictions[m.id]?.goles_local ?? 0,
-  goles_visitante: predictions[m.id]?.goles_visitante ?? 0
-}));
+        participante_id: idGuardado,
+        partido_id: m.id,
+        goles_local: predictions[m.id]?.goles_local ?? 0,
+        goles_visitante: predictions[m.id]?.goles_visitante ?? 0
+      }));
 
       // 3. Usamos .upsert() para que modifique los goles viejos y no tire duplicados
       const { error: pronosticosError } = await supabase
@@ -184,6 +192,9 @@ export const Play: React.FC = () => {
         .upsert(pronosticosData, { onConflict: 'participante_id,partido_id' });
 
       if (pronosticosError) throw pronosticosError;
+
+      // Si todo se guardó bien en la base de datos, bloqueamos las predicciones especiales localmente
+      setHasPredictionsSaved(true);
 
       // 4. Ir a la pantalla de éxito
       setStep(3);
@@ -236,21 +247,21 @@ export const Play: React.FC = () => {
         </div>
 
         {/* Pestañas de Navegación por Etapas */}
-<div className="flex flex-wrap gap-2 mb-6 border-b border-slate-800/80 pb-4 justify-center md:justify-start">
-  {(['Grupos A-D', 'Grupos E-H', 'Grupos I-L', '16avos', 'Octavos', 'Cuartos', 'Semifinal', 'Fase Final'] as TabType[]).map((tab) => (
-    <button
-      key={tab}
-      onClick={() => setActiveTab(tab)}
-      className={`px-4 py-2 text-xs font-bold rounded-xl border transition ${
-        activeTab === tab
-          ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md'
-          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-      }`}
-    >
-      {tab}
-    </button>
-  ))}
-</div>
+        <div className="flex flex-wrap gap-2 mb-6 border-b border-slate-800/80 pb-4 justify-center md:justify-start">
+          {((['Grupos A-D', 'Grupos E-H', 'Grupos I-L', '16avos', 'Octavos', 'Cuartos', 'Semifinal', 'Fase Final']) as TabType[]).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 text-xs font-bold rounded-xl border transition ${
+                activeTab === tab
+                  ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md'
+                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
 
         {/* Lista de Partidos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
@@ -283,8 +294,7 @@ export const Play: React.FC = () => {
           <div className="flex items-center gap-2 mb-4 border-b border-slate-800/60 pb-3">
             <Trophy className="h-5 w-5 text-amber-400" />
             <h3 className="text-lg font-black text-slate-100">Predicciones Especiales</h3>
-            {/* Si ya tiene campeón y subcampeón guardados, muestra "Cerradas" */}
-            {(champion && subchampion) ? (
+            {hasPredictionsSaved ? (
               <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md">
                 Elecciones Cerradas
               </span>
@@ -304,8 +314,7 @@ export const Play: React.FC = () => {
                 id="campeon"
                 value={champion}
                 onChange={(e) => setChampion(e.target.value)}
-                /* Se bloquea automáticamente si ya hay datos guardados */
-                disabled={!!(champion && subchampion)} 
+                disabled={hasPredictionsSaved} 
                 className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:border-slate-800"
               >
                 <option value="" disabled>Selecciona un pais...</option>
@@ -323,8 +332,7 @@ export const Play: React.FC = () => {
                 id="subcampeon"
                 value={subchampion}
                 onChange={(e) => setSubchampion(e.target.value)}
-                /* Se bloquea automáticamente si ya hay datos guardados */
-                disabled={!!(champion && subchampion)} 
+                disabled={hasPredictionsSaved} 
                 className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:border-slate-800"
               >
                 <option value="" disabled>Selecciona un pais...</option>
