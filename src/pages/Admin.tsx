@@ -43,25 +43,27 @@ export const Admin: React.FC = () => {
     const loadAdminData = async () => {
       try {
         setLoading(true);
-        // 1. Cargar partidos
-        const { data: matchesData } = await supabase
-          .from('partidos')
-          .select('*')
-          .order('id', { ascending: true });
-        if (matchesData) {
-          setMatches(matchesData as Partido[]);
-          
-          // Inicializar marcadores de edición
-          const editMap: Record<number, { goles_local: number; goles_visitante: number; ganador?: string }> = {};
-          matchesData.forEach(m => {
-            editMap[m.id] = {
-              goles_local: m.goles_local_real ?? 0,
-              goles_visitante: m.goles_visitante_real ?? 0,
-              ganador: m.equipo_ganador || ''
-            };
-          });
-          setEditingScores(editMap);
-        }
+        // 1. Cargar partidos ordenados por Calendario Real (Fecha y Hora)
+const { data: matchesData } = await supabase
+  .from('partidos')
+  .select('*')
+  .order('fecha', { ascending: true }) // <-- Ordena de la fecha más vieja a la más nueva
+  .order('hora', { ascending: true }); // <-- Si juegan el mismo día, los ordena por horario
+
+if (matchesData) {
+  setMatches(matchesData as Partido[]);
+  
+  // Inicializar marcadores de edición
+  const editMap: Record<number, { goles_local: number; goles_visitante: number; ganador?: string }> = {};
+  matchesData.forEach(m => {
+    editMap[m.id] = {
+      goles_local: m.goles_local_real ?? 0,
+      goles_visitante: m.goles_visitante_real ?? 0,
+      ganador: m.equipo_ganador || ''
+    };
+  });
+  setEditingScores(editMap);
+}
 
         // 2. Cargar participantes (del ranking en tiempo real)
         const { data: rankingData } = await supabase
