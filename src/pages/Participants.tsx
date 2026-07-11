@@ -298,13 +298,13 @@ export const Participants: React.FC = () => {
                     let securePrediction = originalPrediction;
 
                     if (originalPrediction && match.estado !== 'Finalizado') {
-                      securePrediction = {
-                        ...originalPrediction,
-                        goles_local: '?' as any,
-                        goles_visitante: '?' as any,
-                        ganador_penales: undefined 
-                      };
-                    }
+  securePrediction = {
+    ...originalPrediction,
+    goles_local: undefined as any, // Sin romper tipos numéricos
+    goles_visitante: undefined as any
+    // Borramos ganador_penales de acá adentro porque no existe en tu tipo Pronostico
+  };
+}
 
                     return (
                       <MatchCard
