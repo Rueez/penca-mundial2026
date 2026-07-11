@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import type { Partido, RankingRow, Pronostico, Puntuacion } from '../types/database.types';
 import { MatchCard } from '../components/MatchCard';
-import { Search, User, Trophy, Star} from 'lucide-react';
+import { Search, User, Trophy, Star, Lock } from 'lucide-react'; // <-- IMPORT SUBIDO Y LIMPIO ACÁ
 
 type TabType = 'Grupos A-D' | 'Grupos E-H' | 'Grupos I-L' | '16avos' | 'Octavos' | 'Cuartos' | 'Semifinales' | 'Fase Final';
 
@@ -131,7 +131,7 @@ export const Participants: React.FC = () => {
         return g === 'Semifinal'; 
       }
       if (activeTab === 'Fase Final') {
-        return ['Tercer puesto', 'Final'].includes(g); // <-- Solo el cierre del torneo
+        return ['Tercer puesto', 'Final'].includes(g);
       }
       return false;
     });
@@ -199,7 +199,7 @@ export const Participants: React.FC = () => {
           </div>
         </div>
 
-        {/* Panel Derecho: Estadísticas y Pronósticos del amigo seleccionado */}
+        {/* Panel Derecho: Estadísticas y Pronósticos */}
         <div className="lg:col-span-8">
           {selectedParticipant ? (
             <div>
@@ -219,14 +219,26 @@ export const Participants: React.FC = () => {
                     <Trophy className="h-4 w-4 text-amber-500" />
                     <div>
                       <div className="text-slate-500 text-[9px] uppercase font-bold">Campeón Elegido</div>
-                      <div>{selectedParticipant.campeon}</div>
+                      <div className="flex items-center gap-1 font-bold">
+                        {matches.find(m => m.grupo === 'Final' && m.estado === 'Finalizado') ? (
+                          selectedParticipant.campeon
+                        ) : (
+                          <span className="text-slate-500 italic flex items-center gap-1 text-[11px] font-medium"><Lock className="h-3 w-3" /> Oculto</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="px-3.5 py-2 bg-slate-950/60 border border-slate-800 rounded-xl flex items-center gap-2">
                     <Star className="h-4 w-4 text-slate-400" />
                     <div>
                       <div className="text-slate-500 text-[9px] uppercase font-bold">Subcampeón Elegido</div>
-                      <div>{selectedParticipant.subcampeon}</div>
+                      <div className="flex items-center gap-1 font-bold">
+                        {matches.find(m => m.grupo === 'Final' && m.estado === 'Finalizado') ? (
+                          selectedParticipant.subcampeon
+                        ) : (
+                          <span className="text-slate-500 italic flex items-center gap-1 text-[11px] font-medium"><Lock className="h-3 w-3" /> Oculto</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -249,30 +261,30 @@ export const Participants: React.FC = () => {
               </div>
 
               {/* Pestañas de Etapas */}
-<div className="flex flex-wrap gap-2 mb-6 border-b border-slate-800/80 pb-4 justify-center md:justify-start">
-  {([
-    'Grupos A-D', 
-    'Grupos E-H', 
-    'Grupos I-L', 
-    '16avos', 
-    'Octavos', 
-    'Cuartos',       // <-- Agregado
-    'Semifinales',   // <-- Agregado
-    'Fase Final'
-  ] as TabType[]).map((tab) => (
-    <button
-      key={tab}
-      onClick={() => setActiveTab(tab)}
-      className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition ${
-        activeTab === tab
-          ? 'bg-amber-400 text-slate-950 border-amber-400'
-          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-      }`}
-    >
-      {tab}
-    </button>
-  ))}
-</div>
+              <div className="flex flex-wrap gap-2 mb-6 border-b border-slate-800/80 pb-4 justify-center md:justify-start">
+                {([
+                  'Grupos A-D', 
+                  'Grupos E-H', 
+                  'Grupos I-L', 
+                  '16avos', 
+                  'Octavos', 
+                  'Cuartos', 
+                  'Semifinales', 
+                  'Fase Final'
+                ] as TabType[]).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition ${
+                      activeTab === tab
+                        ? 'bg-amber-400 text-slate-950 border-amber-400'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
 
               {/* Detalle de Pronósticos */}
               {loadingDetails ? (
@@ -281,18 +293,32 @@ export const Participants: React.FC = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {getFilteredMatches().map((match) => (
-                    <MatchCard
-                      key={match.id}
-                      match={match}
-                      isPredictionMode={false}
-                      prediction={predictions[match.id]}
-                      points={points[match.id]}
-                    />
-                  ))}
+                  {getFilteredMatches().map((match) => {
+                    const originalPrediction = predictions[match.id];
+                    let securePrediction = originalPrediction;
+
+                    if (originalPrediction && match.estado !== 'Finalizado') {
+                      securePrediction = {
+                        ...originalPrediction,
+                        goles_local: '?' as any,
+                        goles_visitante: '?' as any,
+                        ganador_penales: undefined 
+                      };
+                    }
+
+                    return (
+                      <MatchCard
+                        key={match.id}
+                        match={match}
+                        isPredictionMode={false}
+                        prediction={securePrediction}
+                        points={match.estado === 'Finalizado' ? points[match.id] : undefined}
+                      />
+                    );
+                  })}
                 </div>
               )}
-            </div>
+            </div> // <-- Cierre del condicional principal corregido
           ) : (
             <div className="glass-panel p-16 text-center rounded-3xl text-slate-400 flex flex-col items-center justify-center h-full min-h-[300px]">
               <User className="h-12 w-12 text-slate-600 mb-4" />
