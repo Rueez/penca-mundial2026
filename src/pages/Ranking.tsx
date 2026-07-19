@@ -69,28 +69,29 @@ export const Ranking: React.FC = () => {
     };
   }, []);
 
-  // Filtrar según búsqueda por nombre
-  // Filtrar según búsqueda por nombre
-const filteredRanking = ranking
-  .filter(row => row.nombre.toLowerCase().includes(search.toLowerCase()))
-  .sort((a, b) => {
-    // 1. Criterio principal: El que tenga más puntos va primero
-    if (b.puntos_totales !== a.puntos_totales) {
-      return b.puntos_totales - a.puntos_totales;
-    }
+  // Filtrar según búsqueda por nombre y ordenar con desempate manual
+  const filteredRanking = ranking
+    .filter(row => row.nombre.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      // 1. Criterio principal: El que tenga más puntos va primero
+      if (b.puntos_totales !== a.puntos_totales) {
+        return b.puntos_totales - a.puntos_totales;
+      }
 
-    // 2. Criterio de desempate manual (¡Tu regla secreta!):
-    // Si empatan en puntos, le damos prioridad a Mily sobre Juan
-    if (a.nombre.toLowerCase().includes('mily') && b.nombre.toLowerCase().includes('juan')) {
-      return -1; // Mily sube
-    }
-    if (b.nombre.toLowerCase().includes('mily') && a.nombre.toLowerCase().includes('juan')) {
-      return 1;  // Juan baja
-    }
+      // 2. Criterio de desempate manual específico para ellos:
+      const nameA = a.nombre.toLowerCase();
+      const nameB = b.nombre.toLowerCase();
 
-    // 3. Desempate genérico por orden alfabético si empatan otros usuarios
-    return a.nombre.localeCompare(b.nombre);
-  });
+      if (nameA.includes('mily') && nameB.includes('juan pablo')) {
+        return -1; // Mily queda arriba de Juan Pablo
+      }
+      if (nameB.includes('mily') && nameA.includes('juan pablo')) {
+        return 1;  // Juan Pablo queda abajo de Mily
+      }
+
+      // 3. Desempate genérico por orden alfabético si empatan otros usuarios cualquiera
+      return a.nombre.localeCompare(b.nombre);
+    });
 
   // Obtener medalla o posición
   const renderPosition = (index: number) => {
