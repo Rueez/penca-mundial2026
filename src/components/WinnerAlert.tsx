@@ -1,21 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Trophy, X, Star } from 'lucide-react';
 
 export const WinnerAlert: React.FC = () => {
-  const [showAlert, setShowAlert] = useState(false);
-
-  useEffect(() => {
-    // Verificamos si el usuario ya vio y cerró la alerta de campeones
-    const hasSeenAlert = localStorage.getItem('penca_2026_final_winners');
-    if (!hasSeenAlert) {
-      setShowAlert(true);
-    }
-  }, []);
+  // Al iniciar siempre en true, aparecerá con cada recarga de página
+  const [showAlert, setShowAlert] = useState(true);
+  const navigate = useNavigate();
 
   const handleClose = () => {
-    // Guardamos en el navegador que ya se visualizó para que no vuelva a aparecer
-    localStorage.setItem('penca_2026_final_winners', 'true');
     setShowAlert(false);
+  };
+
+  const handleGoToRanking = () => {
+    handleClose();
+    navigate('/ranking'); 
   };
 
   if (!showAlert) return null;
@@ -60,7 +58,7 @@ export const WinnerAlert: React.FC = () => {
 
         {/* Botón de acción */}
         <button
-          onClick={handleClose}
+          onClick={handleGoToRanking}
           className="w-full py-3 bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold rounded-xl transition duration-200 shadow-lg shadow-amber-500/10 text-sm tracking-wide"
         >
           Entrar a ver la Tabla
