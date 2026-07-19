@@ -70,9 +70,27 @@ export const Ranking: React.FC = () => {
   }, []);
 
   // Filtrar según búsqueda por nombre
-  const filteredRanking = ranking.filter(row =>
-    row.nombre.toLowerCase().includes(search.toLowerCase())
-  );
+  // Filtrar según búsqueda por nombre
+const filteredRanking = ranking
+  .filter(row => row.nombre.toLowerCase().includes(search.toLowerCase()))
+  .sort((a, b) => {
+    // 1. Criterio principal: El que tenga más puntos va primero
+    if (b.puntos_totales !== a.puntos_totales) {
+      return b.puntos_totales - a.puntos_totales;
+    }
+
+    // 2. Criterio de desempate manual (¡Tu regla secreta!):
+    // Si empatan en puntos, le damos prioridad a Mily sobre Juan
+    if (a.nombre.toLowerCase().includes('mily') && b.nombre.toLowerCase().includes('juan')) {
+      return -1; // Mily sube
+    }
+    if (b.nombre.toLowerCase().includes('mily') && a.nombre.toLowerCase().includes('juan')) {
+      return 1;  // Juan baja
+    }
+
+    // 3. Desempate genérico por orden alfabético si empatan otros usuarios
+    return a.nombre.localeCompare(b.nombre);
+  });
 
   // Obtener medalla o posición
   const renderPosition = (index: number) => {
