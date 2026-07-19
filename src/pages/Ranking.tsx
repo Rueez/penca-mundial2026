@@ -7,6 +7,7 @@ export const Ranking: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [ranking, setRanking] = useState<RankingRow[]>([]);
   const [search, setSearch] = useState('');
+  const [isFinalFinished, setIsFinalFinished] = useState(false); // Estado nuevo para controlar el candado
 
   const fetchRanking = async () => {
     try {
@@ -25,10 +26,28 @@ export const Ranking: React.FC = () => {
     }
   };
 
+  // Función nueva para validar en tiempo real si el partido de la final ya terminó
+  const checkFinalStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('partidos')
+        .select('estado')
+        .eq('grupo', 'Final')
+        .maybeSingle();
+
+      if (!error && data) {
+        setIsFinalFinished(data.estado === 'Finalizado');
+      }
+    } catch (err) {
+      console.error('Error al verificar estado de la final:', err);
+    }
+  };
+
   useEffect(() => {
     fetchRanking();
+    checkFinalStatus();
 
-    // Suscripción Realtime en Supabase para cambios en puntuaciones, participantes y configuración
+    // Suscripción Realtime en Supabase para cambios en puntuaciones, participantes, configuración y partidos
     const channel = supabase
       .channel('public:ranking_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'puntuaciones' }, () => {
@@ -39,6 +58,9 @@ export const Ranking: React.FC = () => {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'configuracion' }, () => {
         fetchRanking();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'partidos' }, () => {
+        checkFinalStatus(); // Si el administrador finaliza el partido en vivo, se libera el candado solo
       })
       .subscribe();
 
@@ -124,8 +146,13 @@ export const Ranking: React.FC = () => {
                       <div className="font-bold text-slate-200 group-hover:text-slate-50 transition-colors">
                         {row.nombre}
                       </div>
-                      <div className="text-[10px] text-slate-500 mt-0.5 md:hidden">
-                        C: {row.campeon} | S: {row.subcampeon}
+                      {/* Mobile C / S Ocultado con candado condicional */}
+                      <div className="text-[10px] text-slate-500 mt-0.5 md:hidden font-medium">
+                        {isFinalFinished ? (
+                          `C: ${row.campeon} | S: ${row.subcampeon}`
+                        ) : (
+                          <span className="text-slate-600">🔒 Especiales ocultos</span>
+                        )}
                       </div>
                     </td>
 
@@ -151,14 +178,20 @@ export const Ranking: React.FC = () => {
                       {row.exactos_acertados}e / {row.ganadores_acertados}g
                     </td>
 
-                    {/* Especiales */}
+                    {/* Especiales Computadora Ocultado con candado condicional */}
                     <td className="py-4 px-4 text-xs text-slate-400 hidden md:table-cell">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="flex items-center gap-1">
-                          <Star className="h-3 w-3 text-amber-500 fill-current" /> {row.campeon}
+                      {isFinalFinished ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="flex items-center gap-1">
+                            <Star className="h-3 w-3 text-amber-500 fill-current" /> {row.campeon}
+                          </span>
+                          <span className="text-slate-500 pl-4">{row.subcampeon}</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-500 italic flex items-center gap-1 font-medium">
+                          🔒 Oculto hasta el final
                         </span>
-                        <span className="text-slate-500 pl-4">{row.subcampeon}</span>
-                      </div>
+                      )}
                     </td>
                   </tr>
                 ))}
