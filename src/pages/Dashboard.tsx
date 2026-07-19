@@ -4,6 +4,7 @@ import { supabase } from '../services/supabase';
 import type { Partido } from '../types/database.types';
 import { StatsDashboard } from '../components/StatsDashboard';
 import { MatchCard } from '../components/MatchCard';
+import { WinnerAlert } from '../components/WinnerAlert';
 import { isRegistrationClosed } from '../utils/timezone';
 import { Trophy, ArrowRight, LogIn, Edit3, AlertCircle } from 'lucide-react';
 
@@ -41,9 +42,43 @@ export const Dashboard: React.FC = () => {
         if (rankingResponse.error) throw rankingResponse.error;
 
         const matchesData = matchesResponse.data as Partido[] || [];
-        const rankingData = rankingResponse.data || [];
-        console.log("DATOS DEL RANKING EN EL DASHBOARD:", rankingData);
-// 3. Filtrar partidos próximos para las tarjetas de abajo
+        const rawRankingData = rankingResponse.data || [];
+
+        // 3. Modificamos y recalculamos el ranking con las bonificaciones especiales exactas
+        const rankingActualizado = rawRankingData.map(row => {
+          const nameLower = row.nombre.toLowerCase();
+          let puntosExtra = 0;
+
+          if (
+            nameLower.includes('mily') || 
+            nameLower.includes('juan pablo fassio') || 
+            nameLower.includes('él roro')
+          ) {
+            puntosExtra += 4;
+          }
+
+          if (nameLower.includes('tito')) {
+            puntosExtra += 6;
+          }
+
+          return {
+            ...row,
+            puntos_totales: (row.puntos_totales || 0) + puntosExtra
+          };
+        }).sort((a, b) => {
+          if (b.puntos_totales !== a.puntos_totales) {
+            return b.puntos_totales - a.puntos_totales;
+          }
+          const nameA = a.nombre.toLowerCase();
+          const nameB = b.nombre.toLowerCase();
+
+          if (nameA.includes('mily') && nameB.includes('juan pablo fassio')) return -1;
+          if (nameB.includes('mily') && nameA.includes('juan pablo fassio')) return 1;
+          
+          return a.nombre.localeCompare(b.nombre);
+        });
+
+        // 4. Filtrar partidos próximos para las tarjetas de abajo
         const filtered = matchesData
           .filter((m) => {
             const noFinalizado = m.estado !== "Finalizado";
@@ -64,24 +99,24 @@ export const Dashboard: React.FC = () => {
 
         setUpcomingMatches(filtered);
 
-        // 4. Procesar y calcular estadísticas reales en tiempo de ejecución
+        // 5. Procesar y calcular estadísticas reales en tiempo de ejecución
         const partidosFinalizados = matchesData.filter(m => m.estado === 'Finalizado').length;
-        const totalAmigos = rankingData.length;
+        const totalAmigos = rankingActualizado.length;
         
         let lider = 'Nadie aún';
         let exactosDelLider = 0;
         let promedioPuntos = 0;
 
         if (totalAmigos > 0) {
-          const topUser = rankingData[0];
+          const topUser = rankingActualizado[0];
           lider = topUser.nombre;
           exactosDelLider = topUser.exactos_acertados || 0;
           
-          const sumaPuntos = rankingData.reduce((acc, curr) => acc + (curr.puntos_totales || 0), 0);
+          const sumaPuntos = rankingActualizado.reduce((acc, curr) => acc + (curr.puntos_totales || 0), 0);
           promedioPuntos = parseFloat((sumaPuntos / totalAmigos).toFixed(1));
         }
 
-        // 5. Impactamos los contadores en el estado
+        // 6. Impactamos los contadores en el estado
         setStats({
           leaderName: lider,
           totalParticipants: totalAmigos,
@@ -110,111 +145,116 @@ export const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Banner de Bienvenida / Hero */}
-      <div className="relative rounded-3xl overflow-hidden mb-10 p-8 md:p-12 bg-radial from-slate-900/60 to-slate-950 border border-slate-800/80 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="absolute inset-0 bg-linear-to-r from-amber-500/10 to-indigo-500/10 pointer-events-none" />
-        
-        <div className="max-w-xl text-center md:text-left z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-            <Trophy className="h-4 w-4" /> Torneo Privado Mundial 2026
-          </div>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-4">
-            Penca Mundial <span className="text-amber-400">2026</span>
-          </h1>
-          <p className="text-slate-400 text-sm md:text-base leading-relaxed mb-6">
-            Una penca para los muchachos del laburo. 
-          </p>
+    <>
+      {/* Ventana flotante de campeones */}
+      <WinnerAlert />
+
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Banner de Bienvenida / Hero */}
+        <div className="relative rounded-3xl overflow-hidden mb-10 p-8 md:p-12 bg-radial from-slate-900/60 to-slate-950 border border-slate-800/80 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="absolute inset-0 bg-linear-to-r from-amber-500/10 to-indigo-500/10 pointer-events-none" />
           
-          <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-6 text-center md:text-left">
-            <h3 className="text-lg font-bold text-green-400">
-              🏆 Premio acumulado: ${stats.totalParticipants * 300}
-            </h3>
-            <p className="text-sm text-slate-400">
-              {stats.totalParticipants} participantes × $300
+          <div className="max-w-xl text-center md:text-left z-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
+              <Trophy className="h-4 w-4" /> Torneo Privado Mundial 2026
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-4">
+              Penca Mundial <span className="text-amber-400">2026</span>
+            </h1>
+            <p className="text-slate-400 text-sm md:text-base leading-relaxed mb-6">
+              Una penca para los muchachos del laburo. 
             </p>
-            <p className="text-xs text-slate-400 mt-2">
-              El premio acumulado se repartirá entre el 1° y 2° lugar
-            </p>
-          </div>
-     
-          <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-4">
-            {!isClosed ? (
-              <Link
-                to="/jugar"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-xl transition shadow-lg shadow-amber-400/20"
-              >
-                {usuarioLogueado ? (
-                  <>
-                    <Edit3 className="h-4 w-4" /> Modificar mis Pronósticos
-                  </>
-                ) : (
-                  <>
-                    <LogIn className="h-4 w-4" /> Ingresar a la Penca
-                  </>
-                )}
-              </Link>
-            ) : (
-              <div className="inline-flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm font-semibold">
-                <AlertCircle className="h-5 w-5 shrink-0" />
-                Las inscripciones para la Penca Mundial 2026 ya se encuentran cerradas.
-              </div>
-            )}
             
-            <Link
-              to="/ranking"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 font-bold text-slate-200 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl transition"
-            >
-              Ver Ranking <ArrowRight className="h-5 w-5" />
-            </Link>
+            <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-6 text-center md:text-left">
+              <h3 className="text-lg font-bold text-green-400">
+                🏆 Premio acumulado: ${stats.totalParticipants * 300}
+              </h3>
+              <p className="text-sm text-slate-400">
+                {stats.totalParticipants} participantes × $300
+              </p>
+              <p className="text-xs text-slate-400 mt-2">
+                El premio acumulado se repartirá entre el 1° y 2° lugar
+              </p>
+            </div>
+       
+            <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-4">
+              {!isClosed ? (
+                <Link
+                  to="/jugar"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-xl transition shadow-lg shadow-amber-400/20"
+                >
+                  {usuarioLogueado ? (
+                    <>
+                      <Edit3 className="h-4 w-4" /> Modificar mis Pronósticos
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="h-4 w-4" /> Ingresar a la Penca
+                    </>
+                  )}
+                </Link>
+              ) : (
+                <div className="inline-flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm font-semibold">
+                  <AlertCircle className="h-5 w-5 shrink-0" />
+                  Las inscripciones para la Penca Mundial 2026 ya se encuentran cerradas.
+                </div>
+              )}
+              
+              <Link
+                to="/ranking"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 font-bold text-slate-200 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl transition"
+              >
+                Ver Ranking <ArrowRight className="h-5 w-5" />
+              </Link>
+            </div>
+          </div>
+          
+          {/* Gráfico / Ilustración */}
+          <div className="w-48 h-48 md:w-64 md:h-64 flex items-center justify-center bg-radial from-amber-500/20 to-transparent rounded-full z-10 shrink-0 relative animate-pulse-gold">
+            <Trophy className="h-24 w-24 md:h-32 md:w-32 text-amber-400 drop-shadow-[0_0_20px_rgba(245,158,11,0.5)]" />
           </div>
         </div>
-        
-        {/* Gráfico / Ilustración */}
-        <div className="w-48 h-48 md:w-64 md:h-64 flex items-center justify-center bg-radial from-amber-500/20 to-transparent rounded-full z-10 shrink-0 relative animate-pulse-gold">
-          <Trophy className="h-24 w-24 md:h-32 md:w-32 text-amber-400 drop-shadow-[0_0_20px_rgba(245,158,11,0.5)]" />
-        </div>
-      </div>
 
-      {/* Indicadores en tiempo real */}
-      <h2 className="text-xl font-bold tracking-tight text-slate-100 mb-4 flex items-center gap-2">
-        <span className="w-1.5 h-6 bg-amber-400 rounded-full" /> Estadísticas Generales
-      </h2>
-      <StatsDashboard
-        leaderName={stats.leaderName}
-        totalParticipants={stats.totalParticipants}
-        finishedMatches={stats.finishedMatches}
-        totalMatches={stats.totalMatches}
-        leaderExacts={stats.leaderExacts}
-        averagePoints={stats.averagePoints}
-      />
+        {/* Indicadores en tiempo real */}
+        <h2 className="text-xl font-bold tracking-tight text-slate-100 mb-4 flex items-center gap-2">
+          <span className="w-1.5 h-6 bg-amber-400 rounded-full" /> Estadísticas Generales
+        </h2>
+        <StatsDashboard
+          leaderName={stats.leaderName}
+          totalParticipants={stats.totalParticipants}
+          finishedMatches={stats.finishedMatches}
+          totalMatches={stats.totalMatches}
+          leaderExacts={stats.leaderExacts}
+          averagePoints={stats.averagePoints}
+        />
 
-      {/* Próximos Partidos */}
-      <div className="mt-12">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
-            <span className="w-1.5 h-6 bg-indigo-500 rounded-full" /> Próximos Partidos
-          </h2>
-          {stats.finishedMatches > 0 && (
-            <span className="text-xs font-semibold px-2.5 py-1 bg-slate-900 border border-slate-800 rounded-lg text-slate-400">
-              El torneo ya está en marcha
-            </span>
+        {/* Próximos Partidos */}
+        <div className="mt-12">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
+              <span className="w-1.5 h-6 bg-indigo-500 rounded-full" /> Próximos Partidos
+            </h2>
+            {stats.finishedMatches > 0 && (
+              <span className="text-xs font-semibold px-2.5 py-1 bg-slate-900 border border-slate-800 rounded-lg text-slate-400">
+                El torneo ya está en marcha
+              </span>
+            )}
+          </div>
+
+          {upcomingMatches.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {upcomingMatches.map((match) => (
+                <MatchCard key={match.id} match={match} />
+              ))}
+            </div>
+          ) : (
+            <div className="glass-panel p-8 text-center rounded-2xl text-slate-400">
+              No hay próximos partidos pendientes de jugar. ¡Todos los partidos han finalizado!
+            </div>
           )}
         </div>
-
-        {upcomingMatches.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {upcomingMatches.map((match) => (
-              <MatchCard key={match.id} match={match} />
-            ))}
-          </div>
-        ) : (
-          <div className="glass-panel p-8 text-center rounded-2xl text-slate-400">
-            No hay próximos partidos pendientes de jugar. ¡Todos los partidos han finalizado!
-          </div>
-        )}
       </div>
-    </div>
+    </>
   );
 };
 
