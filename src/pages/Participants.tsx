@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import type { Partido, RankingRow, Pronostico, Puntuacion } from '../types/database.types';
 import { MatchCard } from '../components/MatchCard';
-import { Search, User, Trophy, Star, Lock } from 'lucide-react'; // <-- IMPORT SUBIDO Y LIMPIO ACÁ
+import { Search, User, Trophy, Star, Lock } from 'lucide-react';
 
 type TabType = 'Grupos A-D' | 'Grupos E-H' | 'Grupos I-L' | '16avos' | 'Octavos' | 'Cuartos' | 'Semifinales' | 'Fase Final';
 
@@ -161,7 +161,7 @@ export const Participants: React.FC = () => {
               type="text"
               placeholder="Buscar amigo..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => setSearch(e.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-slate-950/60 border border-slate-800 focus:border-amber-400 rounded-xl text-slate-100 placeholder-slate-600 focus:outline-none transition text-sm font-semibold"
             />
           </div>
@@ -218,7 +218,7 @@ export const Participants: React.FC = () => {
                   <div className="px-3.5 py-2 bg-slate-950/60 border border-slate-800 rounded-xl flex items-center gap-2">
                     <Trophy className="h-4 w-4 text-amber-500" />
                     <div>
-                      <div className="text-slate-500 text-[9px] uppercase font-bold">Campeón Elegido</div>
+                      <div className="text-slate-500 text-[9px] uppercase font-bold">Campeón Elegido (+6 pts)</div>
                       <div className="flex items-center gap-1 font-bold">
                         {matches.find(m => m.grupo === 'Final' && m.estado === 'Finalizado') ? (
                           selectedParticipant.campeon
@@ -231,7 +231,7 @@ export const Participants: React.FC = () => {
                   <div className="px-3.5 py-2 bg-slate-950/60 border border-slate-800 rounded-xl flex items-center gap-2">
                     <Star className="h-4 w-4 text-slate-400" />
                     <div>
-                      <div className="text-slate-500 text-[9px] uppercase font-bold">Subcampeón Elegido</div>
+                      <div className="text-slate-500 text-[9px] uppercase font-bold">Subcampeón Elegido (+4 pts)</div>
                       <div className="flex items-center gap-1 font-bold">
                         {matches.find(m => m.grupo === 'Final' && m.estado === 'Finalizado') ? (
                           selectedParticipant.subcampeon
@@ -298,13 +298,12 @@ export const Participants: React.FC = () => {
                     let securePrediction = originalPrediction;
 
                     if (originalPrediction && match.estado !== 'Finalizado') {
-  securePrediction = {
-    ...originalPrediction,
-    goles_local: undefined as any, // Sin romper tipos numéricos
-    goles_visitante: undefined as any
-    // Borramos ganador_penales de acá adentro porque no existe en tu tipo Pronostico
-  };
-}
+                      securePrediction = {
+                        ...originalPrediction,
+                        goles_local: undefined as any,
+                        goles_visitante: undefined as any
+                      };
+                    }
 
                     return (
                       <MatchCard
@@ -318,7 +317,7 @@ export const Participants: React.FC = () => {
                   })}
                 </div>
               )}
-            </div> // <-- Cierre del condicional principal corregido
+            </div>
           ) : (
             <div className="glass-panel p-16 text-center rounded-3xl text-slate-400 flex flex-col items-center justify-center h-full min-h-[300px]">
               <User className="h-12 w-12 text-slate-600 mb-4" />
