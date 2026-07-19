@@ -161,7 +161,7 @@ export const Participants: React.FC = () => {
               type="text"
               placeholder="Buscar amigo..."
               value={search}
-              onChange={(e) => setSearch(e.value)}
+              onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-slate-950/60 border border-slate-800 focus:border-amber-400 rounded-xl text-slate-100 placeholder-slate-600 focus:outline-none transition text-sm font-semibold"
             />
           </div>
