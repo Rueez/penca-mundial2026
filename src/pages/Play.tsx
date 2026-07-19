@@ -326,7 +326,7 @@ export const Play: React.FC = () => {
 
             <div>
               <label htmlFor="subcampeon" className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                Subcampeon del Mundial <span className="text-amber-400 lowercase font-medium text-[11px] ml-1">(+6 pts si aciertas)</span>
+                Subcampeon del Mundial <span className="text-amber-400 lowercase font-medium text-[11px] ml-1">(+4 pts si aciertas)</span>
               </label>
               <select
                 id="subcampeon"
