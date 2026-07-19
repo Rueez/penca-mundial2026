@@ -7,7 +7,7 @@ export const Ranking: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [ranking, setRanking] = useState<RankingRow[]>([]);
   const [search, setSearch] = useState('');
-  const [isFinalFinished, setIsFinalFinished] = useState(false); // Estado nuevo para controlar el candado
+  const [isFinalFinished, setIsFinalFinished] = useState(false); // Estado para controlar el candado
 
   const fetchRanking = async () => {
     try {
@@ -26,7 +26,7 @@ export const Ranking: React.FC = () => {
     }
   };
 
-  // Función nueva para validar en tiempo real si el partido de la final ya terminó
+  // Función para validar en tiempo real si el partido de la final ya terminó
   const checkFinalStatus = async () => {
     try {
       const { data, error } = await supabase
@@ -69,27 +69,55 @@ export const Ranking: React.FC = () => {
     };
   }, []);
 
-  // Filtrar según búsqueda por nombre y ordenar con desempate manual
-  const filteredRanking = ranking
+  // 1. Forzamos los puntos de las predicciones especiales por nombres exactos en el frontend
+  const rankingActualizado = ranking.map(row => {
+    const nameLower = row.nombre.toLowerCase();
+    let puntosExtra = 0;
+
+    // Asignación de +4 puntos por Argentina Subcampeón
+    if (
+      nameLower.includes('mily') || 
+      nameLower.includes('juan pablo fassio') || 
+      nameLower.includes('él roro')
+    ) {
+      puntosExtra += 4;
+    }
+
+    // Asignación de +6 puntos por España Campeón
+    if (nameLower.includes('tito')) {
+      puntosExtra += 6;
+    }
+
+    if (puntosExtra > 0) {
+      return {
+        ...row,
+        puntos_totales: row.puntos_totales + puntosExtra
+      };
+    }
+    return row;
+  });
+
+  // 2. Filtramos según búsqueda por nombre y ordenamos con el desempate manual estructural
+  const filteredRanking = rankingActualizado
     .filter(row => row.nombre.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
-      // 1. Criterio principal: El que tenga más puntos va primero
+      // Criterio principal: El que tenga más puntos va primero
       if (b.puntos_totales !== a.puntos_totales) {
         return b.puntos_totales - a.puntos_totales;
       }
 
-      // 2. Criterio de desempate manual específico para ellos:
+      // Criterio de desempate manual específico para el primer puesto (Mily vs Juan Pablo Fassio):
       const nameA = a.nombre.toLowerCase();
       const nameB = b.nombre.toLowerCase();
 
-      if (nameA.includes('mily') && nameB.includes('juan pablo')) {
-        return -1; // Mily queda arriba de Juan Pablo
+      if (nameA.includes('mily') && nameB.includes('juan pablo fassio')) {
+        return -1; // Mily queda arriba de Juan Pablo Fassio en caso de empate
       }
-      if (nameB.includes('mily') && nameA.includes('juan pablo')) {
-        return 1;  // Juan Pablo queda abajo de Mily
+      if (nameB.includes('mily') && nameA.includes('juan pablo fassio')) {
+        return 1;  // Juan Pablo Fassio queda abajo de Mily
       }
 
-      // 3. Desempate genérico por orden alfabético si empatan otros usuarios cualquiera
+      // Desempate genérico por orden alfabético si empatan otros usuarios cualquiera
       return a.nombre.localeCompare(b.nombre);
     });
 
